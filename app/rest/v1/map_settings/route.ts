@@ -13,7 +13,9 @@ export async function GET() {
     const db = await getDb();
     const rows = await db.collection('map_settings').find({}).toArray();
     const clean = rows.map(({ _id, ...rest }) => rest);
-    return NextResponse.json(clean);
+    return NextResponse.json(clean, {
+      headers: { 'Cache-Control': 'public, max-age=30, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (e) {
     console.error('[rest/map_settings]', e);
     return NextResponse.json([]);

@@ -81,12 +81,23 @@
     if (this._returning) op.returning = true;
     if (this._values != null) op.values = this._values;
 
-    this._ran = fetch(DB_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify(op),
-    }).then(function (res) {
+    // Reads go over GET so the browser/CDN can cache public data; writes use
+    // POST. Both share the same op shape on the server.
+    var request;
+    if (op.action === 'select') {
+      request = fetch(DB_ENDPOINT + '?op=' + encodeURIComponent(JSON.stringify(op)), {
+        method: 'GET',
+        credentials: 'same-origin',
+      });
+    } else {
+      request = fetch(DB_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(op),
+      });
+    }
+    this._ran = request.then(function (res) {
       return res.json().then(function (body) {
         return { data: body.data, error: body.error, status: res.status };
       });

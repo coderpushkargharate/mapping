@@ -47,6 +47,35 @@ const PUBLIC_READ = new Set([
   'area_boundaries',
 ]);
 
+// ---------------------------------------------------------------------------
+// In-memory read cache for PUBLIC tables. The public map data changes rarely
+// (only via the editor) but is read by every visitor, so caching it in the Node
+// process turns repeat/concurrent reads into RAM lookups instead of Atlas
+// round-trips (which measured ~0.25s warm and ~5s cold). Writes invalidate the
+// affected table. Private tables (leads/pins_history) are never cached.
+// Stored on globalThis so it survives dev hot-reloads.
+const CACHE_TTL_MS = 30_000;
+type CacheEntry = { data: unknown; exp: number };
+const g = globalThis as unknown as { __pubReadCache?: Map<string, CacheEntry> };
+const readCache: Map<string, CacheEntry> = g.__pubReadCache || (g.__pubReadCache = new Map());
+
+function cacheKey(op: DbOp): string {
+  return [
+    op.table,
+    op.columns || '*',
+    JSON.stringify(op.filters || []),
+    JSON.stringify(op.order || null),
+    op.limit ?? '',
+    op.single ? '1' : '0',
+  ].join('|');
+}
+
+function invalidateTable(table: string) {
+  for (const key of readCache.keys()) {
+    if (key.startsWith(table + '|')) readCache.delete(key);
+  }
+}
+
 // Tables the client is never allowed to write to directly (history is captured
 // server-side, mirroring the original database trigger).
 const CLIENT_WRITABLE = new Set([
@@ -137,16 +166,28 @@ export async function runDbOp(op: DbOp, isAuthed: boolean): Promise<DbResult> {
   try {
     switch (op.action) {
       case 'select': {
+        const canCache = PUBLIC_READ.has(op.table);
+        const key = canCache ? cacheKey(op) : '';
+        if (canCache) {
+          const hit = readCache.get(key);
+          if (hit && hit.exp > Date.now()) {
+            return { data: hit.data, error: null, status: 200 };
+          }
+        }
+
         const query = buildQuery(op.filters);
         const projection = buildProjection(op.columns);
         let cursor = coll.find(query, projection ? { projection } : undefined);
         if (op.order) cursor = cursor.sort({ [op.order.col]: op.order.ascending ? 1 : -1 });
         if (op.limit != null) cursor = cursor.limit(op.limit);
         const rows = (await cursor.toArray()).map((d) => clean(d as Record<string, unknown>));
+
         if (op.single) {
           if (rows.length === 0) return err('No rows found', 406, 'PGRST116');
+          if (canCache) readCache.set(key, { data: rows[0], exp: Date.now() + CACHE_TTL_MS });
           return { data: rows[0], error: null, status: 200 };
         }
+        if (canCache) readCache.set(key, { data: rows, exp: Date.now() + CACHE_TTL_MS });
         return { data: rows, error: null, status: 200 };
       }
 
@@ -162,6 +203,7 @@ export async function runDbOp(op: DbOp, isAuthed: boolean): Promise<DbResult> {
           return doc as AnyDoc;
         });
         await coll.insertMany(docs);
+        invalidateTable(op.table);
         if (op.returning || op.single) {
           const out = docs.map((d) => clean(d));
           return { data: op.single ? out[0] : out, error: null, status: 201 };
@@ -183,6 +225,7 @@ export async function runDbOp(op: DbOp, isAuthed: boolean): Promise<DbResult> {
         }
 
         await coll.updateMany(query, { $set: patch });
+        invalidateTable(op.table);
         if (op.returning || op.single) {
           const rows = (await coll.find(query).toArray()).map((d) => clean(d as Record<string, unknown>));
           return { data: op.single ? rows[0] ?? null : rows, error: null, status: 200 };
@@ -197,6 +240,7 @@ export async function runDbOp(op: DbOp, isAuthed: boolean): Promise<DbResult> {
           for (const doc of affected) await captureHistory(db, doc as Record<string, unknown>, 'delete');
         }
         await coll.deleteMany(query);
+        invalidateTable(op.table);
         return { data: null, error: null, status: 200 };
       }
 
@@ -211,6 +255,7 @@ export async function runDbOp(op: DbOp, isAuthed: boolean): Promise<DbResult> {
           doc._id = String(doc.id);
           await coll.replaceOne({ _id: doc._id }, doc, { upsert: true });
         }
+        invalidateTable(op.table);
         return { data: null, error: null, status: 200 };
       }
 
@@ -233,5 +278,6 @@ export async function restorePinFromHistory(historyId: string, isAuthed: boolean
   if (!row.id) return err('History entry has no pin data', 422);
   const doc = { ...row, _id: row.id as string, updated_at: new Date().toISOString() };
   await getColl(db, 'pins').replaceOne({ _id: row.id as string }, doc, { upsert: true });
+  invalidateTable('pins');
   return { data: clean(doc), error: null, status: 200 };
 }
