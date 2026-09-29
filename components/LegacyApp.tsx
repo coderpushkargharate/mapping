@@ -49,20 +49,8 @@ export default function LegacyApp({ slug }: { slug: string }) {
 
     async function boot() {
       try {
-        // Defensively clear any stale service worker / cache that a previous app
-        // on this origin (e.g. another project on localhost) may have registered
-        // and which could serve outdated bundles. These map apps never used a SW.
-        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-          navigator.serviceWorker
-            .getRegistrations()
-            .then((rs) => rs.forEach((r) => r.unregister()))
-            .catch(() => {});
-        }
-        if (typeof caches !== 'undefined') {
-          caches.keys().then((ks) => ks.forEach((k) => caches.delete(k))).catch(() => {});
-        }
-
-        // Always fetch the current bundle (never a stale cached copy).
+        // Always fetch the current bundle (never a stale cached copy). Our
+        // service worker is network-first, so this stays fresh too.
         const res = await fetch(`/legacy/${slug}.json`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`Failed to load app bundle (${res.status})`);
         const bundle: Bundle = await res.json();
