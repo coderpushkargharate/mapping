@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0",
     "lint": "next lint",
     "backup:supabase": "node migration/backup-supabase.mjs",
     "import:mongo": "node migration/import-mongodb.mjs",
     "db:indexes": "node migration/create-indexes.mjs",
     "seed:admin": "node migration/seed-admin.mjs"
+  },
+  "engines": {
+    "node": ">=18.18.0 <21"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
