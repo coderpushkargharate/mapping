@@ -38,22 +38,26 @@ app/
   api/auth/{login,logout,session}/route.ts
   api/rpc/restore_pin_from_history/route.ts
   rest/v1/map_settings/route.ts        # pre-boot GTM/settings compat
-components/LegacyApp.tsx               # boots original HTML/JS bundles in-document
+components/LegacyApp.tsx               # boots the map-app bundles in-document
 lib/{mongodb.ts, auth.ts, db-engine.ts}
 models/index.ts                        # TS shapes for every collection
-scripts/prepare-legacy.mjs            # HTML → JSON bundle build step
-public/supabase-shim.js               # drop-in Supabase client → our API
-public/legacy/*.json                  # generated app bundles
-public/img/*                          # copied assets
+public/db-shim.js                      # self-contained DB client → our API (no Supabase)
+public/legacy/*.json                  # the three map-app bundles (canonical source)
+public/img/*                          # image assets
+public/llms.txt                        # AI-crawler descriptor
 migration/                            # backup/import/verify/index/seed scripts
-index.html, team-editor-x7k2.html, mundhwa-map-3d.html   # ORIGINALS (source of truth, kept)
 ```
 
-**Key decision — legacy-preserving port.** The ~85k-char inline app logic per page
-is *preserved verbatim* and booted by `LegacyApp`, with only two transformations:
-the Supabase SDK is swapped for `supabase-shim.js`, and the Supabase domain is made
-same-origin. This guarantees the UI, map behavior, interactions and business logic
-are identical, while the data now flows to MongoDB. No visual redesign was done.
+There are **no HTML pages** and **no Supabase** anywhere in the project — every
+route is a Next.js page/route handler, and the three map apps ship as static
+JSON bundles under `public/legacy/`.
+
+**Key decision — behavior-preserving port.** The ~85k-char map/editor/3D app logic
+is *preserved verbatim* inside the bundles and booted by `LegacyApp`, with only the
+data layer swapped: the Supabase SDK is replaced by `public/db-shim.js` (which talks
+only to our MongoDB-backed API). This guarantees the UI, map behavior, interactions
+and business logic are identical, with no visual redesign. The bundles are now the
+canonical source (the original standalone HTML files have been removed).
 
 ## 3. Database structure (collections + indexes)
 
@@ -113,20 +117,29 @@ over intact.
 
 ## 10. Files changed / added
 
-Added: all of `app/`, `components/`, `lib/`, `models/`, `scripts/`, `public/supabase-shim.js`,
-`public/legacy/*`, `public/img/*`, `package.json`, `tsconfig.json`, `next.config.mjs`,
-`.eslintrc.json`, `.gitignore`, `.env.example`, `.env.local`, `migration/*`,
-`MIGRATION-REPORT.md`. The three source HTML files are **unmodified**.
+Added: all of `app/`, `components/`, `lib/`, `models/`, `public/db-shim.js`,
+`public/legacy/*`, `public/img/*`, `public/llms.txt`, `package.json`, `tsconfig.json`,
+`next.config.mjs`, `.eslintrc.json`, `.gitignore`, `.env.example`, `.env.local`,
+`migration/*`, `MIGRATION-REPORT.md`.
 
 ## 11. Files removed
 
-None. (Per policy, originals are retained until browser-verified.)
+After the migrated app was browser-verified, the old site was removed so the
+project is pure Next.js with no HTML pages:
+
+- `index.html`, `team-editor-x7k2.html`, `mundhwa-map-3d.html` — old standalone
+  pages (their behavior is preserved verbatim in `public/legacy/*.json`).
+- root `robots.txt`, `sitemap.xml` — superseded by `app/robots.ts` / `app/sitemap.ts`.
+- root `llms.txt` — moved to `public/llms.txt`.
+- root `img/` — moved to `public/img/`.
+- `scripts/prepare-legacy.mjs` — the HTML→bundle build step, obsolete now that the
+  bundles are canonical.
 
 ## 12. Files intentionally preserved
 
-`index.html`, `team-editor-x7k2.html`, `mundhwa-map-3d.html` — the source of truth
-that `prepare-legacy.mjs` transforms into bundles. Root `robots.txt`/`sitemap.xml`
-superseded by generated ones but left in place.
+`public/legacy/*.json` — the canonical, self-contained map/editor/3D app bundles
+(no Supabase, no external HTML source needed). `migration/*` retained for the pending
+`leads`/`pins_history` import and re-verification.
 
 ## 13. Migration risks / manual verification needed
 

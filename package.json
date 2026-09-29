@@ -5,10 +5,9 @@
   "description": "Mappingg interactive real-estate map — Next.js + MongoDB migration of the original HTML/Supabase site.",
   "scripts": {
     "dev": "next dev",
-    "build": "npm run prepare:legacy && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prepare:legacy": "node scripts/prepare-legacy.mjs",
     "backup:supabase": "node migration/backup-supabase.mjs",
     "import:mongo": "node migration/import-mongodb.mjs",
     "db:indexes": "node migration/create-indexes.mjs",
