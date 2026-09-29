@@ -1,9 +1,11 @@
 /*
- * supabase-shim.js
- * ----------------
- * A drop-in replacement for @supabase/supabase-js, exposing the exact subset of
- * the client API the original Mappingg pages use, but talking to this app's own
- * Next.js API (backed by MongoDB) instead of Supabase.
+ * db-shim.js  (formerly the Supabase client)
+ * ------------------------------------------
+ * The app no longer uses Supabase. This is a self-contained client that exposes
+ * the exact subset of the old client API the original Mappingg pages call, but
+ * talks ONLY to this app's own Next.js API (backed by MongoDB). It still assigns
+ * window.supabase purely so the untouched legacy page code keeps working — there
+ * is no Supabase service, SDK, key or network call involved.
  *
  * It implements:
  *   supabase.createClient(url, key) -> { from, rpc, channel, auth }

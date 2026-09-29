@@ -16,6 +16,10 @@ const ROOT = join(__dirname, '..');
 const OUT = join(ROOT, 'public', 'legacy');
 
 const SUPABASE_DOMAIN = 'https://kgnhxtrlccsyxmnmnokc.supabase.co';
+// The old public anon key — now inert (our API ignores it), but we strip it so
+// no Supabase token ships to the browser at all.
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtnbmh4dHJsY2NzeXhtbm1ub2tjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc4MDM2NjksImV4cCI6MjEwMzM3OTY2OX0.PDC3PpSYdNIz7dVJgpJzQO0EB5Ab-OR5Cy9vjqvZScg';
 
 const PAGES = [
   { src: 'index.html', slug: 'public-map' },
@@ -23,13 +27,16 @@ const PAGES = [
   { src: 'mundhwa-map-3d.html', slug: 'map-3d' },
 ];
 
-// Same-origin so the pre-boot fetch hits our /rest/v1/* compat route, and swap
-// the Supabase SDK CDN for our drop-in shim. Also make img/ paths absolute so
-// they resolve from any route depth.
+// Remove every trace of Supabase from what ships to the browser:
+//  - the Supabase project domain -> same-origin (pre-boot hits our /rest/v1 route)
+//  - the Supabase JS SDK CDN     -> our own drop-in client shim
+//  - the public anon-key JWT     -> a harmless placeholder (our API ignores it)
+// Also make img/ paths absolute so they resolve from any route depth.
 function transform(text) {
   return text
     .split(SUPABASE_DOMAIN).join('')
-    .split('https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js').join('/supabase-shim.js')
+    .split(SUPABASE_ANON_KEY).join('local')
+    .split('https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js').join('/db-shim.js')
     .split('"img/').join('"/img/')
     .split("'img/").join("'/img/")
     .split('(img/').join('(/img/');
