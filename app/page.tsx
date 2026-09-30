@@ -3,6 +3,7 @@ import './landing.css';
 import { LANDING_BODY } from '@/components/landing/body';
 import LandingClient from '@/components/landing/LandingClient';
 import SiteHeader from '@/components/SiteHeader';
+import IconFont from '@/components/IconFont';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
 
@@ -13,7 +14,7 @@ export const revalidate = 600;
 export const metadata: Metadata = {
   title: 'Mappingg.com — Every Property Project, Mapped & Verified | Pune',
   description:
-    'Mappingg puts every live real estate project on one interactive map — with project status, MahaRERA-verified RERA numbers, possession dates, upcoming infrastructure and nearby places. Explore live Pune projects for free.',
+    'Mappingg puts every live real estate project on one interactive map — with project status, MahaRERA-verified RERA numbers, possession dates, upcoming infrastructure and nearby places. Explore live Pune projects at no cost.',
   keywords: [
     'real estate map Pune', 'property projects Pune', 'MahaRERA verified projects', 'new launches Pune',
     'flats in Mundhwa', 'Kharadi projects', 'Magarpatta property', 'Hadapsar flats', 'ready to move Pune',
@@ -60,12 +61,8 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Warm up the CDN that serves the icon font used across the landing page. */}
-      <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
-      <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      />
+      {/* Icon font, loaded without blocking the first paint (shared with every page). */}
+      <IconFont />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* One shared header across the whole site. */}

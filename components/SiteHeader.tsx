@@ -10,11 +10,21 @@ import './site-header.css';
 // "Sign in" opens the modal on the home page or routes home (?signin=1) elsewhere.
 const LINKS = [
   { href: '/', label: 'Home', match: (p: string) => p === '/' },
-  { href: '/map', label: 'Live map', match: (p: string) => p.startsWith('/map') },
+  { href: '/map', label: 'Live map', match: (p: string) => p === '/map' || p.startsWith('/map/') },
   { href: '/#how', label: 'How it works', match: () => false },
   { href: '/#features', label: 'Features', match: () => false },
   { href: '/blog', label: 'Blog', match: (p: string) => p.startsWith('/blog') },
   { href: '/#faq', label: 'FAQ', match: () => false },
+];
+// Secondary links shown only in the mobile menu, where the footer is a long scroll away.
+const MORE_LINKS = [
+  { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
+  { href: '/careers', label: 'Careers' },
+  { href: '/advertise', label: 'Advertise' },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/terms', label: 'Terms' },
+  { href: '/map-data', label: 'Map data' },
 ];
 
 export default function SiteHeader() {
@@ -87,6 +97,13 @@ export default function SiteHeader() {
                 {l.label}
               </Link>
             ))}
+            <div className="shd-more">
+              {MORE_LINKS.map((l) => (
+                <Link key={l.href} href={l.href} className={pathname === l.href ? 'active' : ''} onClick={() => setOpen(false)}>
+                  {l.label}
+                </Link>
+              ))}
+            </div>
             <div className="row">
               {signedIn ? (
                 <Link href="/team-editor-x7k2" className="shd-btn primary" onClick={() => setOpen(false)}>Dashboard</Link>

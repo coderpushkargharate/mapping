@@ -63,6 +63,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://unpkg.com" />
+        {/* Icon font CDN (Font Awesome) used by the landing and company/legal pages. */}
+        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
 
         {/* Google Search Console verification — set from the admin Settings page. */}
         {gsc ? <meta name="google-site-verification" content={gsc} /> : null}

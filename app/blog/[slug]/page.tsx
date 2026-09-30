@@ -92,7 +92,7 @@ export default async function BlogArticle({ params }: { params: { slug: string }
 
           <div className="article-cta">
             <h3>See these projects on the live map</h3>
-            <p>Every project, its MahaRERA-verified RERA number and what’s around it — free for buyers.</p>
+            <p>Every project, its MahaRERA-verified RERA number and what’s around it — at no cost to buyers.</p>
             <a href="/map"><i aria-hidden="true">🗺️</i> Open the live map</a>
           </div>
         </div>

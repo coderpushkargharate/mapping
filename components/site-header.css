@@ -42,6 +42,11 @@
 .shd-mobile a:hover, .shd-mobile button:hover { background: var(--accent-50); color: var(--forest); }
 .shd-mobile .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
 .shd-mobile .row .shd-btn { width: 100%; justify-content: center; }
+/* Secondary company/legal links as compact chips; the panel scrolls on short screens. */
+.shd-mobile { max-height: calc(100dvh - 100px); overflow-y: auto; overscroll-behavior: contain; }
+.shd-mobile .shd-more { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; padding: 12px 4px 2px; border-top: 1px solid var(--line); }
+.shd-mobile .shd-more a { padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--text); background: #f6f4ee; }
+.shd-mobile .shd-more a.active { background: var(--accent-50); color: var(--forest); font-weight: 600; }
 
 @media (max-width: 1000px) {
   .shd-menu, .shd-right .shd-btn.link { display: none; }

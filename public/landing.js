@@ -49,7 +49,7 @@
     if (mapLock) mapLock.hidden = !locked;
     if (byId('mapHint')) byId('mapHint').hidden = !!signedIn || locked;
     if (byId('tapLeft')) byId('tapLeft').textContent = left;
-    if (byId('tapState')) byId('tapState').textContent = signedIn ? 'Full access' : locked ? 'Sign in to continue' : `${left} free search${left === 1 ? '' : 'es'} left`;
+    if (byId('tapState')) byId('tapState').textContent = signedIn ? 'Full access' : locked ? 'Sign in to continue' : `${left} search${left === 1 ? '' : 'es'} left`;
   }
   function countTap() {
     if (typeof getUser === 'function' && getUser()) return;
@@ -57,8 +57,8 @@
     taps = Math.min(FREE_TAPS, taps + 1);
     try { localStorage.setItem(TAP_KEY, taps); } catch (e) {}
     renderMapAccess();
-    if (taps >= FREE_TAPS) setTimeout(() => openModal('signup', null, 'Free for buyers — takes under a minute.'), 450);
-    else toast(`${FREE_TAPS - taps} free search${FREE_TAPS - taps === 1 ? '' : 'es'} left on the live map`, 'fa-hand-pointer');
+    if (taps >= FREE_TAPS) setTimeout(() => openModal('signup', null, 'No charge for buyers — takes under a minute.'), 450);
+    else toast(`${FREE_TAPS - taps} search${FREE_TAPS - taps === 1 ? '' : 'es'} left on the live map`, 'fa-hand-pointer');
   }
   window.addEventListener('blur', () => {
     setTimeout(() => {
@@ -72,7 +72,7 @@
     if (e.data && e.data.type === 'mappingg:pin-click') countTap();
   });
   if (mapLock) {
-    mapLock.querySelectorAll('.lock-buyer, .lock-others button').forEach(b => b.addEventListener('click', () => openModal('signup', b.dataset.role, 'Free for buyers — takes under a minute.')));
+    mapLock.querySelectorAll('.lock-buyer, .lock-others button').forEach(b => b.addEventListener('click', () => openModal('signup', b.dataset.role, 'No charge for buyers — takes under a minute.')));
   }
   if (byId('lockSignin')) byId('lockSignin').addEventListener('click', () => openModal('signin', null, 'Sign in to keep exploring the live map.'));
   function openLiveMap() { window.open(LIVE_MAP_URL, '_blank', 'noopener'); }
@@ -189,7 +189,7 @@
     const INFRA = [
       { name: 'Metro line extension', type: 'Metro', st: 'ongoing', when: 'Expected 2027', impact: 'Faster access to the city centre and airport' },
       { name: 'Outer ring road', type: 'Road', st: 'planned', when: 'Proposed', impact: 'Less traffic through local roads' },
-      { name: 'Highway flyover', type: 'Flyover', st: 'ongoing', when: 'Expected 2026', impact: 'Signal-free movement on the highway' },
+      { name: 'Highway flyover', type: 'Flyover', st: 'ongoing', when: 'Expected 2026', impact: 'Non-stop, signal-less movement on the highway' },
       { name: 'New river bridge', type: 'Bridge', st: 'completed', when: 'Opened 2025', impact: 'Shorter trips across the river' },
       { name: 'Road widening to 24 m', type: 'Road', st: 'planned', when: 'Proposed', impact: 'Wider road outside nearby projects' }
     ];
@@ -297,7 +297,7 @@
   const ROLE_LABEL = { buyer: 'Buyer / Investor', developer: 'Developer / Builder', agent: 'Channel Partner' };
   const ROLES = {
     buyer: { side: ['Find, check and compare every project', 'See live status, MahaRERA-verified RERA numbers and possession dates for projects across Pune.'],
-      items: ['Full project details on the live map', 'Status, MahaRERA-verified RERA numbers and possession dates', 'What’s nearby: schools, hospitals, metro', 'Street View and directions to every site', 'Always free for buyers'], cta: 'Create buyer account' },
+      items: ['Full project details on the live map', 'Status, MahaRERA-verified RERA numbers and possession dates', 'What’s nearby: schools, hospitals, metro', 'Street View and directions to every site', 'Always complimentary for buyers'], cta: 'Create buyer account' },
     developer: { side: ['Put your projects on the map', 'Reach buyers and channel partners already comparing projects in your area.'],
       items: ['Your project live as a pin on the map', 'Plot-level availability and layouts', 'Share links and QR codes for hoardings', 'Buyer enquiries straight to your team', 'Verified badge once your RERA no. is checked on MahaRERA'], cta: 'Create developer account' },
     agent: { side: ['Close faster with verified data', 'Show clients exactly where a project is and what its RERA record says.'],
@@ -338,7 +338,7 @@
     tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === which));
     signinForm.classList.toggle('is-active', isIn); signupForm.classList.toggle('is-active', !isIn);
     successView.classList.remove('is-active'); byId('roleBlock').hidden = false; byId('authTabs').hidden = false;
-    byId('modalTitle').textContent = isIn ? 'Sign in' : (currentRole() === 'buyer' ? 'Explore every project free' : 'Create your free account');
+    byId('modalTitle').textContent = isIn ? 'Sign in' : (currentRole() === 'buyer' ? 'Explore every project' : 'Create your account');
     byId('modalSub').textContent = reason || (isIn ? 'Choose your account type, then sign in.' : 'Takes less than a minute.');
     renderSide();
     modal.classList.add('is-open'); document.body.style.overflow = 'hidden';
