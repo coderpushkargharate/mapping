@@ -1,34 +1,35 @@
 import type { Metadata } from 'next';
-import LegacyApp from '@/components/LegacyApp';
-import { getSeoProjects, statusLabel, AREAS_PUNE, AREAS_MMR } from '@/lib/seo-data';
+import './landing.css';
+import { LANDING_BODY } from '@/components/landing/body';
+import LandingClient from '@/components/landing/LandingClient';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
 
-// Regenerate the crawlable content periodically (ISR) — fast to serve, fresh
-// enough for search engines, and cheap on the database.
+// ISR: served static & fast, but re-renders periodically so admin-set SEO values
+// (Search Console verification, GTM) from the shared layout show up without a redeploy.
 export const revalidate = 600;
 
 export const metadata: Metadata = {
-  title: 'Associatte Interactive Map — Live Real Estate Projects in Pune & MMR',
+  title: 'Mappingg.com — Every Property Project, Mapped & Verified | Pune',
   description:
-    'Explore a live, interactive map of real estate projects across Pune (Mundhwa, Kharadi, Magarpatta, Hadapsar, Viman Nagar, Wagholi, Kothrud) and the Mumbai region (Andheri, Khar, Vashi, Nerul, Kharghar, Thane, Dombivli, Palava). Colour-coded by status with developer, pricing, configuration, carpet area, possession and infrastructure details.',
+    'Mappingg puts every live real estate project on one interactive map — with project status, MahaRERA-verified RERA numbers, possession dates, upcoming infrastructure and nearby places. Explore live Pune projects for free.',
   keywords: [
-    'real estate map', 'property map Pune', 'projects in Mundhwa', 'Kharadi projects',
-    'Magarpatta property', 'Hadapsar flats', 'MMR real estate', 'new launches Pune',
-    'under construction projects', 'ready to move flats', 'Mappingg', 'Associatte Proptech',
+    'real estate map Pune', 'property projects Pune', 'MahaRERA verified projects', 'new launches Pune',
+    'flats in Mundhwa', 'Kharadi projects', 'Magarpatta property', 'Hadapsar flats', 'ready to move Pune',
+    'under construction projects Pune', 'plotted projects Pune', 'Mappingg', 'Associatte',
   ],
   alternates: { canonical: SITE_URL },
   openGraph: {
-    title: 'Associatte Interactive Map — Live Project Map',
-    description: 'Explore live projects, upcoming launches and infrastructure across Pune and the Mumbai region.',
+    type: 'website',
+    title: 'Mappingg.com — Every Property Project, Mapped & Verified',
+    description:
+      'One interactive map of every live real estate project in Pune — status, MahaRERA-verified RERA, possession dates and nearby infrastructure.',
     url: SITE_URL,
     images: ['/img/mappingg-icon-mark.png'],
   },
 };
 
-export default async function HomePage() {
-  const projects = await getSeoProjects();
-
+export default function HomePage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -39,68 +40,37 @@ export default async function HomePage() {
         url: SITE_URL,
         description:
           'Live, interactive map of real estate projects in Pune and the Mumbai Metropolitan Region.',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: `${SITE_URL}/map?pin={search_term_string}`,
+          'query-input': 'required name=search_term_string',
+        },
       },
       {
         '@type': 'RealEstateAgent',
         '@id': `${SITE_URL}/#organization`,
         name: 'Associatte Proptech Pvt Ltd',
-        url: 'https://associatte.co.in/',
-        areaServed: [...AREAS_PUNE, ...AREAS_MMR].map((a) => ({ '@type': 'Place', name: a })),
-        knowsAbout: ['Real estate', 'Property investment', 'Home buying'],
-      },
-      {
-        '@type': 'ItemList',
-        name: 'Mapped real estate projects',
-        numberOfItems: projects.length,
-        itemListElement: projects.slice(0, 200).map((p, i) => ({
-          '@type': 'ListItem',
-          position: i + 1,
-          name: p.title || `Project #${p.number ?? ''}`.trim(),
-          url: `${SITE_URL}/?pin=${encodeURIComponent(p.id)}`,
-        })),
+        url: SITE_URL,
+        areaServed: { '@type': 'Place', name: 'Pune, Maharashtra, India' },
+        knowsAbout: ['Real estate', 'Property investment', 'Home buying', 'MahaRERA'],
       },
     ],
   };
 
   return (
     <>
+      {/* Warm up the CDN that serves the icon font used across the landing page. */}
+      <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      {/* Crawlable content for search engines. Visually hidden so the map UI is
-          unchanged, but fully indexable — gives Google real text about every
-          project and area, which is what drives organic discovery. */}
-      <div className="sr-only">
-        <h1>Mappingg — Live interactive real estate project map for Pune and the Mumbai Metropolitan Region</h1>
-        <p>
-          Browse {projects.length} live real estate projects on an interactive map, colour-coded by
-          status (available, under construction, upcoming, sold), with developer, configuration,
-          carpet area, price, possession timeline and nearby infrastructure such as metro stations,
-          bridges, schools and hospitals.
-        </p>
-        <h2>Areas covered in Pune</h2>
-        <p>{AREAS_PUNE.join(', ')}.</p>
-        <h2>Areas covered in the Mumbai region</h2>
-        <p>{AREAS_MMR.join(', ')}.</p>
-
-        {projects.length > 0 && (
-          <nav aria-label="All mapped projects">
-            <h2>Projects on the map</h2>
-            <ul>
-              {projects.map((p) => (
-                <li key={p.id}>
-                  <a href={`/?pin=${encodeURIComponent(p.id)}`}>
-                    {p.title || `Project #${p.number ?? ''}`}
-                    {p.location ? ` — ${p.location}` : ''}
-                    {p.status ? ` (${statusLabel(p.status)})` : ''}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )}
-      </div>
-
-      <LegacyApp slug="public-map" />
+      {/* Full landing markup is server-rendered (great for SEO); all behaviour is
+          wired up client-side by LandingClient + /landing.js. */}
+      <div className="mpg" dangerouslySetInnerHTML={{ __html: LANDING_BODY }} />
+      <LandingClient />
     </>
   );
 }

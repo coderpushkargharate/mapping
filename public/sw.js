@@ -1,8 +1,8 @@
 /* Mappingg service worker — enables PWA install + basic offline support.
  * Strategy: NETWORK-FIRST for pages and app bundles (so content is never stale),
  * falling back to cache when offline. API/auth/db requests are never cached. */
-const CACHE = 'mappingg-v1';
-const APP_SHELL = ['/', '/mundhwa-map-3d', '/db-shim.js', '/manifest.webmanifest'];
+const CACHE = 'mappingg-v2';
+const APP_SHELL = ['/', '/map', '/mundhwa-map-3d', '/db-shim.js', '/landing.js', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
