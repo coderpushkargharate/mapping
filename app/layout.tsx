@@ -48,6 +48,17 @@ export const viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        {/* Warm up the TLS/DNS connections to the external origins the legacy map
+            apps pull from (Leaflet/MapLibre on unpkg, Google Fonts). These are
+            otherwise only discovered late — after the app bundle is fetched and
+            injected — so pre-connecting here removes a serial round-trip from the
+            critical path and makes the map paint noticeably sooner. */}
+        <link rel="preconnect" href="https://unpkg.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://unpkg.com" />
+      </head>
       <body>
         {children}
         <PwaRegister />

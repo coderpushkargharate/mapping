@@ -49,9 +49,14 @@ export default function LegacyApp({ slug }: { slug: string }) {
 
     async function boot() {
       try {
-        // Always fetch the current bundle (never a stale cached copy). Our
-        // service worker is network-first, so this stays fresh too.
-        const res = await fetch(`/legacy/${slug}.json`, { cache: 'no-store' });
+        // Fetch the app bundle through the browser's HTTP cache (revalidating,
+        // not `no-store`). The bundle is a static file served with an ETag, so a
+        // repeat visit sends a conditional request and gets a tiny 304 instead of
+        // re-downloading the whole ~150KB payload — the single biggest repeat-load
+        // win — while a changed bundle (new deploy) is still picked up immediately.
+        // Our service worker stays network-first on top of this, so it never
+        // serves stale content either.
+        const res = await fetch(`/legacy/${slug}.json`, { cache: 'default' });
         if (!res.ok) throw new Error(`Failed to load app bundle (${res.status})`);
         const bundle: Bundle = await res.json();
 

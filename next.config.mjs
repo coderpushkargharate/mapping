@@ -12,6 +12,22 @@ const nextConfig = {
         source: '/team-editor-x7k2',
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
       },
+      {
+        // Static app bundles + the DB shim: revalidate (cheap 304 when unchanged)
+        // instead of a full re-download, but always pick up a fresh deploy.
+        source: '/legacy/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }],
+      },
+      {
+        source: '/db-shim.js',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }],
+      },
+      {
+        // Logos/marks/icons change rarely — let the browser reuse them for a day
+        // and refresh in the background, so repeat visits skip re-fetching them.
+        source: '/:dir(img|icons)/:file*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=86400' }],
+      },
     ];
   },
 };
