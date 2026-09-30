@@ -15,7 +15,7 @@ const schema = z.object({
 });
 
 export async function GET() {
-  if (!(await getCurrentUser())) {
+  if (!(await hasPermission('settings'))) {
     return NextResponse.json({ error: { message: 'Not authorized' } }, { status: 401 });
   }
   const db = await getDb();
@@ -25,7 +25,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await getCurrentUser())) {
+  if (!(await hasPermission('settings'))) {
     return NextResponse.json({ error: { message: 'Not authorized' } }, { status: 401 });
   }
   const parsed = schema.safeParse(await req.json().catch(() => null));
