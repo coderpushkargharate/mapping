@@ -10,12 +10,22 @@ export default function LandingClient() {
   useEffect(() => {
     function loadScript(src: string, marker: string): Promise<void> {
       return new Promise((resolve) => {
-        if (document.querySelector(`script[${marker}]`)) return resolve();
+        // A tag may already exist from an earlier run of this effect (React Strict
+        // Mode runs it twice) that is still downloading — wait for it rather than
+        // resolving early, or landing.js would start before three.js is ready.
+        const existing = document.querySelector<HTMLScriptElement>(`script[${marker}]`);
+        if (existing) {
+          if (existing.dataset.done) return resolve();
+          existing.addEventListener('load', () => resolve());
+          existing.addEventListener('error', () => resolve());
+          return;
+        }
         const el = document.createElement('script');
         el.src = src;
         el.setAttribute(marker, '');
-        el.onload = () => resolve();
-        el.onerror = () => resolve(); // degrade gracefully — the globe simply won't render
+        const done = () => { el.dataset.done = '1'; resolve(); };
+        el.onload = done;
+        el.onerror = done; // degrade gracefully — the globe simply won't render
         document.body.appendChild(el);
       });
     }

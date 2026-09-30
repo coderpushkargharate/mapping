@@ -49,7 +49,7 @@
     if (mapLock) mapLock.hidden = !locked;
     if (byId('mapHint')) byId('mapHint').hidden = !!signedIn || locked;
     if (byId('tapLeft')) byId('tapLeft').textContent = left;
-    if (byId('tapState')) byId('tapState').textContent = signedIn ? 'Full access' : locked ? 'Sign in to continue' : `${left} free tap${left === 1 ? '' : 's'} left`;
+    if (byId('tapState')) byId('tapState').textContent = signedIn ? 'Full access' : locked ? 'Sign in to continue' : `${left} free search${left === 1 ? '' : 'es'} left`;
   }
   function countTap() {
     if (typeof getUser === 'function' && getUser()) return;
@@ -58,7 +58,7 @@
     try { localStorage.setItem(TAP_KEY, taps); } catch (e) {}
     renderMapAccess();
     if (taps >= FREE_TAPS) setTimeout(() => openModal('signup', null, 'Free for buyers — takes under a minute.'), 450);
-    else toast(`${FREE_TAPS - taps} free tap${FREE_TAPS - taps === 1 ? '' : 's'} left on the live map`, 'fa-hand-pointer');
+    else toast(`${FREE_TAPS - taps} free search${FREE_TAPS - taps === 1 ? '' : 'es'} left on the live map`, 'fa-hand-pointer');
   }
   window.addEventListener('blur', () => {
     setTimeout(() => {
@@ -144,7 +144,7 @@
     svg.innerHTML = s;
 
     const LABEL = { available: 'Available', construction: 'Under construction', sold: 'Sold', upcoming: 'Upcoming' };
-    byId('lvCounts').textContent = `· ${pins.length} projects`;
+    byId('lvCounts').textContent = '· 100+ projects';
     const hidden = new Set();
     document.querySelectorAll('#lvLegend button').forEach(b => {
       b.querySelector('b').textContent = pins.filter(p => p.st === b.dataset.st).length;
@@ -388,6 +388,7 @@
     const role = currentRole(), fd = Object.fromEntries(new FormData(signupForm));
     success({ name: fd.name.trim(), email: fd.email.trim().toLowerCase(), mobile: (fd.mobile || '').trim(), role, verified: role === 'buyer' }, true);
   });
+  document.querySelectorAll('.btn-google').forEach(b => b.addEventListener('click', () => toast('Google sign-in is coming soon', 'fa-circle-info')));
   document.querySelectorAll('.open-signin').forEach(b => b.addEventListener('click', e => { e.preventDefault(); openModal('signin'); }));
   document.querySelectorAll('.open-signup').forEach(b => b.addEventListener('click', e => {
     e.preventDefault();
