@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './landing.css';
 import { LANDING_BODY } from '@/components/landing/body';
 import LandingClient from '@/components/landing/LandingClient';
+import SiteHeader from '@/components/SiteHeader';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
 
@@ -66,6 +67,9 @@ export default function HomePage() {
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+
+      {/* One shared header across the whole site. */}
+      <SiteHeader />
 
       {/* Full landing markup is server-rendered (great for SEO); all behaviour is
           wired up client-side by LandingClient + /landing.js. */}

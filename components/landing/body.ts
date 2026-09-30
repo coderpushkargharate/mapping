@@ -2,47 +2,9 @@
 // string (injected with dangerouslySetInnerHTML) so the exact hand-tuned design
 // ships verbatim and is fully server-rendered for SEO. All behaviour lives in
 // LandingClient.tsx. "Open live map" links point at the in-app /map route.
+// NOTE: the top navigation is now the shared <SiteHeader/> React component
+// (rendered by the home page), so the landing markup below starts at the hero.
 export const LANDING_BODY = `
-<nav class="nav" id="nav">
-  <div class="container">
-    <div class="nav-bar">
-      <a href="#home" class="brand" aria-label="Mappingg home"><span class="brand-mark" aria-hidden="true"></span><span class="brand-name">Mappingg<em>.com</em></span></a>
-      <ul class="nav-menu">
-        <li><a href="#home" class="active">Home</a></li>
-        <li><a href="#live-map">Live map</a></li>
-        <li><a href="#how">How it works</a></li>
-        <li><a href="#features">Features</a></li>
-        <li><a href="/blog">Blog</a></li>
-        <li><a href="#faq">FAQ</a></li>
-      </ul>
-      <div class="nav-right">
-        <a href="#" class="btn btn-link btn-sm open-signin guest-only">Sign in</a>
-        <a href="/map" class="btn btn-primary btn-sm live-link">Open live map <i class="fas fa-arrow-up-right-from-square"></i></a>
-        <div class="user-chip" id="userChip" hidden>
-          <button class="user-btn" id="userBtn" aria-haspopup="true"><span class="avatar" id="userAvatar"></span><span class="u-meta"><b id="userName"></b><small id="userRole"></small></span><i class="fas fa-chevron-down"></i></button>
-          <div class="user-menu" id="userMenu">
-            <a href="/map" class="live-link"><i class="fas fa-map-location-dot"></i>Open live map</a>
-            <button type="button" id="signOutBtn"><i class="fas fa-right-from-bracket"></i>Sign out</button>
-          </div>
-        </div>
-        <button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false"><i class="fas fa-bars"></i></button>
-      </div>
-      <div class="mobile-menu" id="mobileMenu">
-        <a href="#home" class="active"><i class="fas fa-house"></i>Home</a>
-        <a href="#live-map"><i class="fas fa-map-location-dot"></i>Live map</a>
-        <a href="#how"><i class="fas fa-diagram-project"></i>How it works</a>
-        <a href="#features"><i class="fas fa-layer-group"></i>Features</a>
-        <a href="/blog"><i class="fas fa-newspaper"></i>Blog</a>
-        <a href="#faq"><i class="fas fa-circle-question"></i>FAQ</a>
-        <div class="mobile-cta">
-          <a href="#" class="btn btn-outline open-signin guest-only">Sign in</a>
-          <a href="/map" class="btn btn-primary live-link">Open live map</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</nav>
-
 <header class="hero" id="home">
   <div class="hero-pins" aria-hidden="true">
     <span class="hpin s-available" style="left:4%;top:190px"><span class="pdot"></span>Available</span>

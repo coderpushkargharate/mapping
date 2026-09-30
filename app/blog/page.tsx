@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './blog.css';
 import { listPublished } from '@/lib/blog';
+import SiteHeader from '@/components/SiteHeader';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
 
@@ -10,6 +11,11 @@ export const metadata: Metadata = {
   title: 'Blog — Pune Real Estate Insights, Guides & News',
   description:
     'Practical guides, area insights and market news for buying property in Pune — RERA, possession, pricing, infrastructure and more, from the Mappingg team.',
+  keywords: [
+    'Pune real estate blog', 'property buying guide Pune', 'MahaRERA guide', 'Pune property news',
+    'best areas to buy in Pune', 'Kharadi property', 'Mundhwa flats', 'Hadapsar real estate',
+    'property investment Pune', 'new projects Pune', 'possession date guide', 'Mappingg blog',
+  ],
   alternates: { canonical: `${SITE_URL}/blog` },
   openGraph: {
     type: 'website',
@@ -21,21 +27,6 @@ export const metadata: Metadata = {
 
 function fmt(d?: string | null) {
   return d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-}
-
-function Header() {
-  return (
-    <nav className="blog-nav">
-      <div className="wrap">
-        <a className="blog-brand" href="/"><span className="mark">M</span>Mappingg<em>.com</em></a>
-        <div className="blog-nav-links">
-          <a href="/" className="hide-sm">Home</a>
-          <a href="/blog" className="hide-sm">Blog</a>
-          <a href="/map" className="cta">Open live map</a>
-        </div>
-      </div>
-    </nav>
-  );
 }
 
 function Footer() {
@@ -69,7 +60,7 @@ export default async function BlogIndex() {
   return (
     <div className="blogwrap">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <Header />
+      <SiteHeader />
 
       <header className="blog-hero">
         <div className="wrap">

@@ -405,11 +405,17 @@
   if (byId('signOutBtn')) byId('signOutBtn').addEventListener('click', () => { setUser(null); byId('userMenu').classList.remove('open'); toast('You’re signed out', 'fa-right-from-bracket'); });
   applySession();
 
-  // Deep-link: /?admin=1 (e.g. redirected here from the gated admin) opens sign-in.
+  // The shared <SiteHeader/> lives outside this markup; it asks us to open the
+  // auth modal via a window event instead of a class handler.
+  window.addEventListener('mpg:open-signin', function () { openModal('signin'); });
+  window.addEventListener('mpg:open-signup', function (e) { openModal('signup', e && e.detail && e.detail.role); });
+
+  // Deep-links: /?admin=1 (redirected from the gated admin) or /?signin=1 (Sign in
+  // from another page's header) open the sign-in modal on load.
   try {
-    if (new URLSearchParams(location.search).get('admin') === '1') {
-      openModal('signin', null, 'Sign in to open the admin dashboard.');
-    }
+    var q = new URLSearchParams(location.search);
+    if (q.get('admin') === '1') openModal('signin', null, 'Sign in to open the admin dashboard.');
+    else if (q.get('signin') === '1') openModal('signin');
   } catch (e) {}
 
   /* ---------- Globe ---------- */

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import '../blog.css';
 import { getBySlug, readingTime } from '@/lib/blog';
+import SiteHeader from '@/components/SiteHeader';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
 
@@ -20,6 +21,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   return {
     title,
     description,
+    keywords: post.tags && post.tags.length ? post.tags : undefined,
     alternates: { canonical: url },
     openGraph: {
       type: 'article',
@@ -66,15 +68,7 @@ export default async function BlogArticle({ params }: { params: { slug: string }
     <div className="blogwrap">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <nav className="blog-nav">
-        <div className="wrap">
-          <a className="blog-brand" href="/"><span className="mark">M</span>Mappingg<em>.com</em></a>
-          <div className="blog-nav-links">
-            <a href="/blog" className="hide-sm">Blog</a>
-            <a href="/map" className="cta">Open live map</a>
-          </div>
-        </div>
-      </nav>
+      <SiteHeader />
 
       <article className="article">
         <div className="wrap narrow">
