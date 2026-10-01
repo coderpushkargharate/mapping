@@ -133,6 +133,97 @@ export interface User {
   created_at?: string;
 }
 
+// ---------------------------------------------------------------------------
+// Partners intake (bulk CSV upload → review queue → publish). Backed by the
+// same MongoDB database; see lib/partners-engine.ts for the behaviour.
+// ---------------------------------------------------------------------------
+
+/** A developer/channel partner who submits projects (`builders`). */
+export interface Builder {
+  id: string;
+  _id?: string;
+  code: string; // auto-generated, e.g. GODR-001
+  company_name: string;
+  contact_name?: string;
+  phone?: string;
+  email?: string;
+  city?: string;
+  country?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** A unique, shareable link a builder uses to submit projects (`submission_links`). */
+export interface SubmissionLink {
+  id: string;
+  _id?: string;
+  builder_id: string;
+  token: string; // secret, used in /submit?t=
+  tag: string; // human label, e.g. LNK-0001
+  label?: string | null;
+  is_active: boolean;
+  expires_at?: string | null;
+  open_count?: number;
+  first_opened_at?: string | null;
+  last_opened_at?: string | null;
+  last_activity_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** A project submitted for review (`project_submissions`). Loose by design — it
+ *  mirrors the field set in public/partners/shared/fields.js. */
+export interface ProjectSubmission {
+  id: string;
+  _id?: string;
+  ref_code: string; // auto-generated, e.g. MAP-SUB-00001
+  status: 'draft' | 'submitted' | 'in_review' | 'changes_requested' | 'published' | 'rejected';
+  source: 'link' | 'excel' | 'csv' | 'admin';
+  builder_id?: string | null;
+  link_id?: string | null;
+  project_name?: string;
+  flags?: Record<string, { note: string; at?: string }>;
+  previous_flags?: Record<string, { note: string; at?: string }>;
+  has_unpublished_changes?: boolean;
+  published_project_id?: string | null;
+  submitted_at?: string | null;
+  published_at?: string | null;
+  import_batch_id?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  created_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
+/** Audit-trail entry for a submission (`submission_events`). */
+export interface SubmissionEvent {
+  id: string;
+  _id?: string;
+  submission_id: string;
+  action: string; // created | status_changed | changes_requested | published | ...
+  actor: 'admin' | 'builder' | 'system';
+  details?: Record<string, unknown>;
+  created_at?: string;
+}
+
+/** A published, live-on-the-map project derived from a submission (`projects`). */
+export interface Project {
+  id: string;
+  _id?: string;
+  submission_id: string;
+  slug: string;
+  is_live: boolean;
+  featured?: boolean;
+  project_name?: string;
+  price_label?: string;
+  cover_image_url?: string | null;
+  published_at?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
 export const COLLECTIONS = [
   'pins',
   'infra_markers',
@@ -143,4 +234,11 @@ export const COLLECTIONS = [
   'leads',
   'pins_history',
   'users',
+  // Partners intake
+  'builders',
+  'submission_links',
+  'project_submissions',
+  'submission_events',
+  'projects',
+  'counters',
 ] as const;

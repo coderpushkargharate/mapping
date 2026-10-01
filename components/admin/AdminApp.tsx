@@ -14,6 +14,7 @@ export interface AdminUser {
 
 const GRANTABLE = [
   { key: 'map', label: 'Map Editor', icon: 'fa-map-location-dot', desc: 'Add & edit project pins, infra and roads' },
+  { key: 'intake', label: 'Projects Intake', icon: 'fa-file-arrow-up', desc: 'Bulk CSV upload, review queue & builder links' },
   { key: 'blogs', label: 'Blogs', icon: 'fa-newspaper', desc: 'Write & publish SEO articles' },
   { key: 'seo', label: 'SEO & Health', icon: 'fa-chart-line', desc: 'View search & site health' },
   { key: 'settings', label: 'Settings', icon: 'fa-gear', desc: 'Edit analytics & verification' },
@@ -22,6 +23,7 @@ const GRANTABLE = [
 const TAB_META: Record<string, { label: string; icon: string }> = {
   dashboard: { label: 'Dashboard', icon: 'fa-gauge-high' },
   map: { label: 'Map Editor', icon: 'fa-map-location-dot' },
+  intake: { label: 'Projects Intake', icon: 'fa-file-arrow-up' },
   blogs: { label: 'Blogs', icon: 'fa-newspaper' },
   employees: { label: 'Employees', icon: 'fa-users-gear' },
   seo: { label: 'SEO & Health', icon: 'fa-chart-line' },
@@ -103,6 +105,18 @@ function MapPanel() {
   return (
     <div className="adm-panel" style={{ padding: 0, overflow: 'hidden' }}>
       <iframe title="Map editor" src="/team-editor-x7k2/map" className="adm-frame" />
+    </div>
+  );
+}
+
+/* ---------------------------- Projects Intake ---------------------------- */
+// The partners intake app (bulk CSV/Excel upload, review queue, builders &
+// links, live projects) runs as a self-contained app under /s-admin and is
+// embedded here so it lives inside the super admin too. It shares this session.
+function IntakePanel() {
+  return (
+    <div className="adm-panel" style={{ padding: 0, overflow: 'hidden' }}>
+      <iframe title="Projects intake" src="/s-admin" className="adm-frame" />
     </div>
   );
 }
@@ -421,7 +435,7 @@ export default function AdminApp({ user }: { user: AdminUser }) {
   const { flash, node: toastNode } = useToast();
 
   const visible = isOwner
-    ? ['dashboard', 'map', 'blogs', 'employees', 'seo', 'settings', 'profile']
+    ? ['dashboard', 'map', 'intake', 'blogs', 'employees', 'seo', 'settings', 'profile']
     : ['dashboard', ...GRANTABLE.map((g) => g.key).filter((k) => user.permissions.includes(k)), 'profile'];
 
   const [tab, setTab] = useState(visible[0] || 'dashboard');
@@ -463,9 +477,10 @@ export default function AdminApp({ user }: { user: AdminUser }) {
       </nav>
 
       <main className="adm2-main">
-        <div className="adm-content" style={tab === 'map' ? { maxWidth: 'none', padding: 0 } : undefined}>
+        <div className="adm-content" style={tab === 'map' || tab === 'intake' ? { maxWidth: 'none', padding: 0 } : undefined}>
           {tab === 'dashboard' && <DashboardPanel onGo={(t) => visible.includes(t) && setTab(t)} />}
           {tab === 'map' && <MapPanel />}
+          {tab === 'intake' && <IntakePanel />}
           {tab === 'blogs' && <BlogsPanel flash={flash} />}
           {tab === 'employees' && isOwner && <EmployeesPanel flash={flash} />}
           {tab === 'seo' && <SeoPanel />}

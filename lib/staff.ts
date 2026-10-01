@@ -11,7 +11,7 @@ type AnyDoc = { _id: string;[key: string]: any };
 // role 'admin' (full access); everyone added from the Employees tab has role
 // 'employee' plus a list of tab permissions.
 
-export const GRANTABLE_PERMISSIONS = ['map', 'blogs', 'seo', 'settings'] as const;
+export const GRANTABLE_PERMISSIONS = ['map', 'intake', 'blogs', 'seo', 'settings'] as const;
 export type Permission = (typeof GRANTABLE_PERMISSIONS)[number];
 
 export interface StaffMember {
