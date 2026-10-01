@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SettingsForm from './SettingsForm';
 import ProfileForm from './ProfileForm';
-import { ChartCard, Donut, HBars, STATUS_META, StatTile, StatusStack, TYPE_COLORS, WeekColumns } from './SeoCharts';
+import { ChartCard, DayHeatmap, Donut, HBars, STATUS_META, StatTile, StatusStack, TYPE_COLORS, WeekColumns, dayStats } from './SeoCharts';
 
 export interface AdminUser {
   email: string;
@@ -75,6 +75,9 @@ function DashboardPanel({ onGo }: { onGo: (t: string) => void }) {
   const newTotal = ch.newProjects.reduce((a: number, w: { count: number }) => a + w.count, 0);
   const enqTotal = ch.enquiries.reduce((a: number, w: { count: number }) => a + w.count, 0);
   const pending = s.accounts?.pending || 0;
+  const daily = ch.daily || { today: '', days: [] };
+  const ds = dayStats(daily.days, daily.today);
+  const longDay = (d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
   const health = [
     { ok: s.dbOk ? 'ok' : 'bad', b: 'Database', v: s.dbOk ? 'Connected' : 'Error' },
     { ok: 'ok', b: 'Sitemap & robots', v: 'Active' },
@@ -99,6 +102,30 @@ function DashboardPanel({ onGo }: { onGo: (t: string) => void }) {
           <span className="dash-alert-go">Review <i className="fas fa-arrow-right" /></span>
         </button>
       )}
+
+      <ChartCard
+        title="Projects created day by day"
+        subtitle="Each square is one day (India time) for the last 6 months — grey means no new projects that day"
+        table={{ head: ['Day', 'Projects created'], rows: [...daily.days].filter((d: { count: number }) => d.count > 0).reverse().map((d: { date: string; count: number }) => [longDay(d.date), d.count]) }}
+      >
+        {(show, hide) => (
+          <>
+            <div className={`day-today ${ds.todayCount ? 'yes' : 'no'}`}>
+              <i className={`fas ${ds.todayCount ? 'fa-circle-check' : 'fa-circle-minus'}`} aria-hidden="true" />
+              <span>{ds.todayCount
+                ? <b>Today: {ds.todayCount} project{ds.todayCount === 1 ? '' : 's'} created</b>
+                : <><b>Today: no projects created yet</b>{ds.lastActive ? <> · last new project on {longDay(ds.lastActive)}</> : null}</>}</span>
+            </div>
+            <div className="day-stats">
+              <div><b>{ds.activeDays}</b><span>days with new projects<br /><small>out of {ds.totalDays}</small></span></div>
+              <div><b>{ds.totalDays - ds.activeDays}</b><span>days with none</span></div>
+              <div><b>{ds.streak}</b><span>day streak<br /><small>in a row, up to today</small></span></div>
+              <div><b>{ds.busiest ? ds.busiest.count : 0}</b><span>busiest day<br /><small>{ds.busiest ? longDay(ds.busiest.date) : '—'}</small></span></div>
+            </div>
+            <DayHeatmap days={daily.days} today={daily.today} show={show} hide={hide} />
+          </>
+        )}
+      </ChartCard>
 
       <div className="viz-grid2">
         <ChartCard

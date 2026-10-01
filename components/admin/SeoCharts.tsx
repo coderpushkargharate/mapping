@@ -219,3 +219,59 @@ export function Donut({ slices, centerValue, centerLabel, show, hide }: {
     </div>
   );
 }
+
+/* ---------- day-by-day calendar heatmap (was anything created that day?) ---------- */
+// One square per day (columns = weeks, rows = Mon→Sun). Grey = nothing that day;
+// a validated one-hue green ramp for 1 / 2–3 / 4–9 / 10+.
+const HEAT = ['#ebeae4', '#7fbf8e', '#4f9e60', '#2f7a3c', '#1d4f26'];
+const heatStep = (n: number) => (n <= 0 ? 0 : n === 1 ? 1 : n <= 3 ? 2 : n <= 9 ? 3 : 4);
+const dayFmt = (d: string, opts: Intl.DateTimeFormatOptions) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-IN', { timeZone: 'UTC', ...opts });
+
+export function dayStats(days: { date: string; count: number }[], today: string) {
+  const active = days.filter((d) => d.count > 0);
+  const todayCount = days.find((d) => d.date === today)?.count ?? 0;
+  let streak = 0; // consecutive days with new projects, ending today (or yesterday if today is still empty)
+  for (let i = days.length - 1 - (todayCount ? 0 : 1); i >= 0 && days[i].count > 0; i--) streak++;
+  const busiest = active.reduce<{ date: string; count: number } | null>((m, d) => (!m || d.count > m.count ? d : m), null);
+  const lastActive = active.length ? active[active.length - 1].date : null;
+  return { activeDays: active.length, totalDays: days.length, todayCount, streak, busiest, lastActive };
+}
+
+export function DayHeatmap({ days, today, show, hide }: {
+  days: { date: string; count: number }[]; today: string;
+  show: (e: React.PointerEvent, t: string, l: string[]) => void; hide: () => void;
+}) {
+  // Columns of 7 (Mon..Sun); the last week may be partial (future days left blank).
+  const weeks: ({ date: string; count: number } | null)[][] = [];
+  days.forEach((d, i) => { if (i % 7 === 0) weeks.push([]); weeks[weeks.length - 1].push(d); });
+  const last = weeks[weeks.length - 1];
+  while (last && last.length < 7) last.push(null);
+  const monthOf = (w: ({ date: string } | null)[]) => (w[0] ? dayFmt(w[0].date, { month: 'short' }) : '');
+  return (
+    <div className="viz-heat">
+      <div className="viz-heat-days" aria-hidden="true"><span>Mon</span><span /><span>Wed</span><span /><span>Fri</span><span /><span>Sun</span></div>
+      {/* On narrow screens the grid scrolls; start at the most recent weeks. */}
+      <div className="viz-heat-scroll" ref={(el) => { if (el) el.scrollLeft = el.scrollWidth; }}>
+        <div className="viz-heat-months" aria-hidden="true">
+          {weeks.map((w, i) => <span key={i}>{i === 0 || monthOf(w) !== monthOf(weeks[i - 1]) ? monthOf(w) : ''}</span>)}
+        </div>
+        <div className="viz-heat-grid" role="img" aria-label="Projects created per day">
+          {weeks.map((w, i) => (
+            <div className="viz-heat-col" key={i}>
+              {w.map((d, j) => d ? (
+                <span key={j} className={`viz-heat-cell${d.date === today ? ' is-today' : ''}`} style={{ background: HEAT[heatStep(d.count)] }}
+                  onPointerMove={(e) => show(e, dayFmt(d.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) + (d.date === today ? ' (today)' : ''),
+                    [d.count ? `${fmt(d.count)} project${d.count === 1 ? '' : 's'} created` : 'No projects created'])}
+                  onPointerLeave={hide} />
+              ) : <span key={j} className="viz-heat-cell is-future" />)}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="viz-heat-legend" aria-hidden="true">
+        <span>None</span>{HEAT.map((c, i) => <i key={i} style={{ background: c }} />)}<span>More</span>
+        <small>1 · 2–3 · 4–9 · 10+ per day</small>
+      </div>
+    </div>
+  );
+}

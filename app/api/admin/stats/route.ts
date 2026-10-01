@@ -4,7 +4,7 @@ import { PENDING_FILTER } from '@/lib/verification';
 import { getDb } from '@/lib/mongodb';
 import { countPosts } from '@/lib/blog';
 import { getPublicSettings } from '@/lib/site-settings';
-import { lastWeeks, perWeek } from '@/lib/insights';
+import { lastWeeks, perDay, perWeek } from '@/lib/insights';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,6 +22,7 @@ export async function GET() {
   let newProjects: { week: string; count: number }[] = [];
   let enquiries: { week: string; count: number }[] = [];
   let addedThisMonth = 0, hiddenPins = 0;
+  let daily: ReturnType<typeof perDay> = { today: '', days: [] };
   try {
     const db = await getDb();
     [pins, leads, infra, roads, employees, buyers, developers, agents, pending] = await Promise.all([
@@ -47,6 +48,8 @@ export async function GET() {
     byType = [...types.entries()].sort((a, b) => b[1] - a[1]).map(([key, count]) => ({ key, count }));
     const weeks = lastWeeks(12);
     newProjects = perWeek(rows.map((r) => r.created_at), weeks);
+    // Day by day (IST) for the calendar heatmap: was anything created that day?
+    daily = perDay(rows.map((r) => r.created_at), 26);
     const [mapLeadDates, contactLeadDates] = await Promise.all([
       db.collection('leads').find({}, { projection: { created_at: 1 } }).toArray(),
       db.collection('contact_leads').find({}, { projection: { created_at: 1 } }).toArray(),
@@ -65,7 +68,7 @@ export async function GET() {
       dbOk,
       pins, leads, infra, roads, employees,
       enquiriesTotal: leads + contactLeads,
-      charts: { byStatus, byType, newProjects, enquiries, addedThisMonth, hiddenPins },
+      charts: { byStatus, byType, newProjects, enquiries, addedThisMonth, hiddenPins, daily },
       accounts: { buyers, developers, agents, pending },
       posts,
       seo: {
