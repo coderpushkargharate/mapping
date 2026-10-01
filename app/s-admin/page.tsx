@@ -15,6 +15,7 @@ export default async function AdminHome() {
     name: staff?.name || '',
     role: staff?.role || session?.role || 'employee',
     permissions: staff?.permissions || [],
+    avatar: staff?.avatar || '',
   };
 
   return <AdminApp user={user} />;

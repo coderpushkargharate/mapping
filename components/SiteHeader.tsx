@@ -15,12 +15,12 @@ const LINKS = [
   { href: '/how-it-works', label: 'How it works', match: (p: string) => p === '/how-it-works' },
   { href: '/features', label: 'Features', match: (p: string) => p === '/features' },
   { href: '/blog', label: 'Blog', match: (p: string) => p.startsWith('/blog') },
-  { href: '/faq', label: 'FAQ', match: (p: string) => p === '/faq' },
+  { href: '/contact', label: 'Contact', match: (p: string) => p === '/contact' },
 ];
 // Secondary links shown only in the mobile menu, where the footer is a long scroll away.
 const MORE_LINKS = [
   { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
+  { href: '/faq', label: 'FAQ' },
   { href: '/careers', label: 'Careers' },
   { href: '/advertise', label: 'Advertise' },
   { href: '/privacy', label: 'Privacy' },

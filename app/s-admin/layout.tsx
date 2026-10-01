@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation';
 import './admin.css';
 import { getCurrentUser } from '@/lib/auth';
 
-// The whole super-admin area is gated here: no valid session → the dedicated
-// sign-in page, which returns here after a successful login. Never indexed.
+// The whole super-admin area is gated here: no valid session → the home page,
+// which auto-opens the sign-in modal via ?admin=1. Never indexed.
 export const metadata: Metadata = {
   title: 'Super Admin — Mappingg',
   robots: { index: false, follow: false, nocache: true },
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
-  if (!user) redirect('/signin?next=/s-admin');
+  if (!user) redirect('/?admin=1');
 
   return (
     <>

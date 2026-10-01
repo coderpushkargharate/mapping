@@ -10,11 +10,13 @@ export interface AdminUser {
   name?: string;
   role: string; // 'admin' (owner) | 'employee'
   permissions: string[];
+  avatar?: string;
 }
 
 const GRANTABLE = [
   { key: 'map', label: 'Map Editor', icon: 'fa-map-location-dot', desc: 'Add & edit project pins, infra and roads' },
   { key: 'intake', label: 'Projects Intake', icon: 'fa-file-arrow-up', desc: 'Bulk CSV upload, review queue & builder links' },
+  { key: 'leads', label: 'Leads / CRM', icon: 'fa-address-book', desc: 'Contact enquiries & lead pipeline' },
   { key: 'blogs', label: 'Blogs', icon: 'fa-newspaper', desc: 'Write & publish SEO articles' },
   { key: 'seo', label: 'SEO & Health', icon: 'fa-chart-line', desc: 'View search & site health' },
   { key: 'settings', label: 'Settings', icon: 'fa-gear', desc: 'Edit analytics & verification' },
@@ -24,6 +26,7 @@ const TAB_META: Record<string, { label: string; icon: string }> = {
   dashboard: { label: 'Dashboard', icon: 'fa-gauge-high' },
   map: { label: 'Map Editor', icon: 'fa-map-location-dot' },
   intake: { label: 'Projects Intake', icon: 'fa-file-arrow-up' },
+  leads: { label: 'Leads', icon: 'fa-address-book' },
   blogs: { label: 'Blogs', icon: 'fa-newspaper' },
   employees: { label: 'Employees', icon: 'fa-users-gear' },
   seo: { label: 'SEO & Health', icon: 'fa-chart-line' },
@@ -428,6 +431,178 @@ function EmployeesPanel({ flash }: { flash: (m: string, e?: boolean) => void }) 
   );
 }
 
+/* ------------------------------ Leads / CRM ------------------------------ */
+interface Lead {
+  id: string; name: string; email?: string; phone?: string; subject?: string;
+  message?: string; source?: string; status: 'new' | 'contacted' | 'won' | 'lost';
+  notes?: string; created_at?: string; updated_at?: string;
+}
+const LEAD_STAGES: { key: Lead['status']; label: string }[] = [
+  { key: 'new', label: 'New' },
+  { key: 'contacted', label: 'Contacted' },
+  { key: 'won', label: 'Won' },
+  { key: 'lost', label: 'Lost' },
+];
+const leadWhen = (d?: string) => {
+  if (!d) return '';
+  const s = (Date.now() - new Date(d).getTime()) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  if (s < 86400 * 30) return `${Math.floor(s / 86400)} d ago`;
+  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+function LeadsPanel({ flash }: { flash: (m: string, e?: boolean) => void }) {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState('');
+  const [filter, setFilter] = useState<'all' | Lead['status']>('all');
+  const [sel, setSel] = useState<Lead | null>(null);
+  const [notes, setNotes] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const r = await fetch('/api/admin/leads', { credentials: 'same-origin' });
+      const b = await r.json();
+      setLeads(Array.isArray(b.data) ? b.data : []);
+    } catch { flash('Could not load leads', true); } finally { setLoading(false); }
+  }
+  useEffect(() => { load(); }, []);
+
+  const counts = {
+    all: leads.length,
+    new: leads.filter((l) => l.status === 'new').length,
+    contacted: leads.filter((l) => l.status === 'contacted').length,
+    won: leads.filter((l) => l.status === 'won').length,
+    lost: leads.filter((l) => l.status === 'lost').length,
+  };
+  const term = q.trim().toLowerCase();
+  const list = leads.filter((l) =>
+    (filter === 'all' || l.status === filter) &&
+    (!term || [l.name, l.email, l.phone, l.subject, l.message].some((x) => (x || '').toLowerCase().includes(term))),
+  );
+
+  function open(l: Lead) { setSel(l); setNotes(l.notes || ''); }
+
+  async function patch(id: string, body: Record<string, unknown>) {
+    setBusy(true);
+    try {
+      const r = await fetch('/api/admin/leads', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+        body: JSON.stringify({ id, ...body }),
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b?.error?.message || 'Failed');
+      setLeads((ls) => ls.map((x) => (x.id === id ? b.data : x)));
+      setSel((s) => (s && s.id === id ? b.data : s));
+      return true;
+    } catch (e) { flash(e instanceof Error ? e.message : 'Failed', true); return false; } finally { setBusy(false); }
+  }
+
+  async function setStatus(l: Lead, status: Lead['status']) {
+    if (await patch(l.id, { status })) flash(`Marked ${status}`);
+  }
+  async function saveNotes() {
+    if (sel && await patch(sel.id, { notes })) flash('Notes saved');
+  }
+  async function remove(l: Lead) {
+    if (!confirm(`Delete lead from ${l.name}? This cannot be undone.`)) return;
+    try {
+      const r = await fetch(`/api/admin/leads?id=${encodeURIComponent(l.id)}`, { method: 'DELETE', credentials: 'same-origin' });
+      if (!r.ok) throw new Error();
+      setLeads((ls) => ls.filter((x) => x.id !== l.id));
+      if (sel?.id === l.id) setSel(null);
+      flash('Lead deleted');
+    } catch { flash('Delete failed', true); }
+  }
+
+  const initials = (l: Lead) => (l.name || l.email || '?').slice(0, 2).toUpperCase();
+
+  return (
+    <>
+      <div className="crm-stats">
+        {([['all', 'Total'], ['new', 'New'], ['contacted', 'Contacted'], ['won', 'Won'], ['lost', 'Lost']] as const).map(([k, lbl]) => (
+          <button key={k} className={`crm-stat${filter === k ? ' on' : ''} s-${k}`} onClick={() => setFilter(k as typeof filter)}>
+            <div className="v">{counts[k as keyof typeof counts]}</div><div className="l">{lbl}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="adm-panel">
+        <div className="adm-panel-head">
+          <h3>Leads {list.length ? `(${list.length})` : ''}</h3>
+          <div className="crm-tools">
+            <input className="crm-search" placeholder="Search name, email, phone…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <button className="adm-btn ghost sm" onClick={load}><i className="fas fa-rotate" /> Refresh</button>
+          </div>
+        </div>
+        {loading ? (
+          <div className="adm-empty"><i className="fas fa-spinner fa-spin" /><p>Loading…</p></div>
+        ) : list.length === 0 ? (
+          <div className="adm-empty"><i className="fas fa-address-book" /><p>No leads yet. Submissions from the Contact form appear here.</p></div>
+        ) : (
+          <table className="adm-table crm-table">
+            <thead><tr><th>Lead</th><th>Topic</th><th>Status</th><th>Received</th><th></th></tr></thead>
+            <tbody>
+              {list.map((l) => (
+                <tr key={l.id} className="crm-row" onClick={() => open(l)}>
+                  <td className="t-title">
+                    <span className="crm-ini">{initials(l)}</span>
+                    <span className="crm-id"><b>{l.name}</b><small>{l.email || l.phone || '—'}</small></span>
+                  </td>
+                  <td>{l.subject || '—'}</td>
+                  <td><span className={`crm-pill ${l.status}`}>{LEAD_STAGES.find((s) => s.key === l.status)?.label}</span></td>
+                  <td className="muted">{leadWhen(l.created_at)}</td>
+                  <td><button className="adm-btn ghost sm" onClick={(e) => { e.stopPropagation(); open(l); }}>Open</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {sel && (
+        <div className="crm-drawer-overlay" onClick={() => setSel(null)}>
+          <aside className="crm-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="crm-drawer-head">
+              <div className="crm-id big"><span className="crm-ini">{initials(sel)}</span><span><b>{sel.name}</b><small>{sel.subject}</small></span></div>
+              <button className="adm-btn ghost sm" onClick={() => setSel(null)}><i className="fas fa-xmark" /></button>
+            </div>
+
+            <div className="crm-pipeline">
+              {LEAD_STAGES.map((s) => (
+                <button key={s.key} className={`crm-stage${sel.status === s.key ? ' on' : ''} ${s.key}`} disabled={busy} onClick={() => setStatus(sel, s.key)}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="crm-contact">
+              {sel.email && <a className="adm-btn ghost sm" href={`mailto:${sel.email}`}><i className="fas fa-envelope" /> {sel.email}</a>}
+              {sel.phone && <a className="adm-btn ghost sm" href={`tel:${sel.phone}`}><i className="fas fa-phone" /> {sel.phone}</a>}
+              {sel.phone && <a className="adm-btn ghost sm" target="_blank" rel="noopener" href={`https://wa.me/${sel.phone.replace(/\D/g, '')}`}><i className="fab fa-whatsapp" /> WhatsApp</a>}
+            </div>
+
+            <div className="crm-block"><h4>Message</h4><p className="crm-msg">{sel.message || '—'}</p></div>
+            <div className="crm-block">
+              <h4>Internal notes</h4>
+              <textarea className="crm-notes" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add a note for your team…" />
+              <div className="adm-actions" style={{ marginTop: 8 }}>
+                <button className="adm-btn primary sm" disabled={busy} onClick={saveNotes}><i className="fas fa-floppy-disk" /> Save notes</button>
+                <button className="adm-btn danger sm" onClick={() => remove(sel)}><i className="fas fa-trash" /> Delete</button>
+              </div>
+            </div>
+            <p className="crm-meta">Received {leadWhen(sel.created_at)} · via {sel.source || 'contact form'}</p>
+          </aside>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ------------------------------- Shell ----------------------------------- */
 export default function AdminApp({ user }: { user: AdminUser }) {
   const router = useRouter();
@@ -435,12 +610,14 @@ export default function AdminApp({ user }: { user: AdminUser }) {
   const { flash, node: toastNode } = useToast();
 
   const visible = isOwner
-    ? ['dashboard', 'map', 'intake', 'blogs', 'employees', 'seo', 'settings', 'profile']
+    ? ['dashboard', 'map', 'intake', 'leads', 'blogs', 'employees', 'seo', 'settings', 'profile']
     : ['dashboard', ...GRANTABLE.map((g) => g.key).filter((k) => user.permissions.includes(k)), 'profile'];
 
   const [tab, setTab] = useState(visible[0] || 'dashboard');
   const [menuOpen, setMenuOpen] = useState(false);
-  const initials = (user.name || user.email || '?').slice(0, 2).toUpperCase();
+  const [avatar, setAvatar] = useState(user.avatar || '');
+  const [displayName, setDisplayName] = useState(user.name || '');
+  const initials = (displayName || user.email || '?').slice(0, 2).toUpperCase();
   const menuRef = useRef<HTMLDivElement>(null);
 
   // "Lock to this panel": remember on THIS device that the installed app should
@@ -477,8 +654,13 @@ export default function AdminApp({ user }: { user: AdminUser }) {
         <div className="adm2-top-right" ref={menuRef}>
           <a className="adm-chip" href="/" target="_blank" rel="noopener"><i className="fas fa-arrow-up-right-from-square" /> View site</a>
           <button className="adm-chip" onClick={() => setMenuOpen((v) => !v)}>
-            <span className="who">{initials}</span>
-            <span className="who-meta"><b>{user.name || user.email.split('@')[0]}</b><small>{isOwner ? 'Owner' : 'Employee'}</small></span>
+            <span className="who">
+              {avatar
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={avatar} alt="" />
+                : initials}
+            </span>
+            <span className="who-meta"><b>{displayName || user.email.split('@')[0]}</b><small>{isOwner ? 'Owner' : 'Employee'}</small></span>
             <i className="fas fa-chevron-down" />
           </button>
           {menuOpen && (
@@ -506,11 +688,21 @@ export default function AdminApp({ user }: { user: AdminUser }) {
           {tab === 'dashboard' && <DashboardPanel onGo={(t) => visible.includes(t) && setTab(t)} />}
           {tab === 'map' && <MapPanel />}
           {tab === 'intake' && <IntakePanel />}
+          {tab === 'leads' && <LeadsPanel flash={flash} />}
           {tab === 'blogs' && <BlogsPanel flash={flash} />}
           {tab === 'employees' && isOwner && <EmployeesPanel flash={flash} />}
           {tab === 'seo' && <SeoPanel />}
           {tab === 'settings' && <SettingsForm />}
-          {tab === 'profile' && <ProfileForm email={user.email} role={user.role} />}
+          {tab === 'profile' && (
+            <ProfileForm
+              email={user.email}
+              role={user.role}
+              name={user.name}
+              permissions={user.permissions}
+              avatar={avatar}
+              onProfileSaved={({ name, avatar: a }) => { setDisplayName(name); setAvatar(a); }}
+            />
+          )}
         </div>
       </main>
 

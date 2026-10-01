@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import InfoPage, { CtaBand, EMAIL, MapArt } from '@/components/InfoPage';
+import ContactForm from '@/components/ContactForm';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
 
@@ -37,6 +38,17 @@ export default function ContactPage() {
       }
     >
       <section className="ipg-section">
+        <div className="container">
+          <div className="ipg-head">
+            <span className="eyebrow"><span className="dot" />Send us a message</span>
+            <h2>Tell us what you <span className="accent">need</span></h2>
+            <p>Fill in the form and our team will get back to you. Your message reaches us directly.</p>
+          </div>
+          <ContactForm />
+        </div>
+      </section>
+
+      <section className="ipg-section alt">
         <div className="container">
           <div className="ipg-office">
             <div className="details">
@@ -76,7 +88,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <section className="ipg-section alt">
+      <section className="ipg-section">
         <div className="container">
           <div className="ipg-head">
             <span className="eyebrow"><span className="dot" />How we can help</span>

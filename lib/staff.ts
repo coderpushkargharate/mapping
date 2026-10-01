@@ -11,7 +11,7 @@ type AnyDoc = { _id: string;[key: string]: any };
 // role 'admin' (full access); everyone added from the Employees tab has role
 // 'employee' plus a list of tab permissions.
 
-export const GRANTABLE_PERMISSIONS = ['map', 'intake', 'blogs', 'seo', 'settings'] as const;
+export const GRANTABLE_PERMISSIONS = ['map', 'intake', 'leads', 'blogs', 'seo', 'settings'] as const;
 export type Permission = (typeof GRANTABLE_PERMISSIONS)[number];
 
 export interface StaffMember {
@@ -20,6 +20,7 @@ export interface StaffMember {
   name?: string;
   role: string;
   permissions: string[];
+  avatar?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -32,6 +33,7 @@ function clean(doc: Record<string, unknown> | null): StaffMember | null {
     name: (doc.name as string) || '',
     role: String(doc.role || 'employee'),
     permissions: Array.isArray(doc.permissions) ? (doc.permissions as string[]) : [],
+    avatar: (doc.avatar as string) || '',
     created_at: doc.created_at as string,
     updated_at: doc.updated_at as string,
   };
