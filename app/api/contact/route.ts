@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   const id = randomUUID();
   try {
     const db = await getDb();
-    await db.collection('contact_leads').insertOne({
+    await db.collection<{ _id: string; [k: string]: any }>('contact_leads').insertOne({
       _id: id, id,
       name: d.name, email: d.email, phone: d.phone,
       subject: d.subject || 'General enquiry', message: d.message,
