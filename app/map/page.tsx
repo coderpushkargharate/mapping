@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import LegacyApp from '@/components/LegacyApp';
+import LegacyPreloads from '@/components/LegacyPreloads';
 import { getSeoProjects, statusLabel, AREAS_PUNE, AREAS_MMR } from '@/lib/seo-data';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
@@ -100,6 +101,7 @@ export default async function MapPage() {
         )}
       </div>
 
+      <LegacyPreloads slug="public-map" />
       <LegacyApp slug="public-map" />
     </>
   );

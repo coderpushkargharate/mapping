@@ -3,6 +3,7 @@
 //
 // Only indexes that back real queries are created (no speculative indexes).
 
+import './dns-fix.mjs';
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;

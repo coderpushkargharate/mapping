@@ -11,7 +11,7 @@ type AnyDoc = { _id: string;[key: string]: any };
 // role 'admin' (full access); everyone added from the Employees tab has role
 // 'employee' plus a list of tab permissions.
 
-export const GRANTABLE_PERMISSIONS = ['map', 'intake', 'leads', 'blogs', 'seo', 'settings'] as const;
+export const GRANTABLE_PERMISSIONS = ['map', 'intake', 'leads', 'accounts', 'blogs', 'seo', 'settings'] as const;
 export type Permission = (typeof GRANTABLE_PERMISSIONS)[number];
 
 export interface StaffMember {
@@ -49,7 +49,7 @@ export async function hasPermission(perm: Permission): Promise<boolean> {
   if (!session) return false;
   if (session.role === 'admin') return true;
   const staff = await getStaffByEmail(session.email);
-  return !!staff && staff.permissions.includes(perm);
+  return !!staff && staff.role === 'employee' && staff.permissions.includes(perm);
 }
 
 /** The current user's full record (role + permissions), looked up by email. */

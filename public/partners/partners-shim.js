@@ -139,7 +139,11 @@
     var self = this;
     return fetch('/api/auth/session', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
-      .then(function (b) { self._session = (b && b.session) || null; self._loaded = true; return self._session; })
+      // Only staff sessions count; buyer/developer/agent accounts are not intake admins.
+      .then(function (b) {
+        var s = (b && b.session) || null, r = s && s.user && s.user.role;
+        self._session = (r === 'admin' || r === 'employee') ? s : null; self._loaded = true; return self._session;
+      })
       .catch(function () { self._session = null; self._loaded = true; return null; });
   };
   Auth.prototype.signInWithPassword = function (creds) {

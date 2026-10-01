@@ -9,6 +9,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import './dns-fix.mjs';
 import { MongoClient } from 'mongodb';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

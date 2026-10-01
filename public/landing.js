@@ -1,7 +1,7 @@
 /* Mappingg landing-page behaviour. Loaded by components/landing/LandingClient.tsx
  * after three.js. Wrapped in an IIFE so re-injection never clashes with globals.
- * "Live map" points at the in-app /map route. The buyer/developer/agent auth here
- * is a lightweight localStorage demo that Phase 4 swaps for the real MongoDB+JWT API. */
+ * "Live map" points at the in-app /map route. Buyer/developer/agent accounts are
+ * real (MongoDB + JWT via /api/auth/*): buyers land on /map, developers/agents on /dashboard. */
 (function () {
   'use strict';
   const byId = id => document.getElementById(id);
@@ -293,8 +293,8 @@
     }));
   })();
 
-  /* ---------- Accounts (DEMO — Phase 4 replaces with the real MongoDB+JWT API) ---------- */
-  const ROLE_LABEL = { buyer: 'Buyer / Investor', developer: 'Developer / Builder', agent: 'Channel Partner' };
+  /* ---------- Accounts (MongoDB + JWT via /api/auth/*; localStorage caches the profile) ---------- */
+  const ROLE_LABEL = { buyer: 'Buyer / Investor', developer: 'Developer / Builder', agent: 'Channel Partner', admin: 'Super admin', employee: 'Team' };
   const ROLES = {
     buyer: { side: ['Find, check and compare every project', 'See live status, MahaRERA-verified RERA numbers and possession dates for projects across Pune.'],
       items: ['Full project details on the live map', 'Status, MahaRERA-verified RERA numbers and possession dates', 'What’s nearby: schools, hospitals, metro', 'Street View and directions to every site', 'Always complimentary for buyers'], cta: 'Create buyer account' },
@@ -312,7 +312,9 @@
     if (byId('userChip')) byId('userChip').hidden = !u;
     document.querySelectorAll('.guest-only').forEach(el => { el.hidden = !!u; });
     renderMapAccess();
-    if (u) { byId('userAvatar').textContent = initials(u.name); byId('userName').textContent = u.name; byId('userRole').textContent = ROLE_LABEL[u.role] + (u.verified ? '' : ' · pending'); }
+    // The chip only exists in older markup (the shared <SiteHeader/> replaced it), so set what's there.
+    const set = (id, text) => { const el = byId(id); if (el) el.textContent = text; };
+    if (u) { set('userAvatar', initials(u.name)); set('userName', u.name); set('userRole', (ROLE_LABEL[u.role] || '') + (u.verified ? '' : ' · pending')); }
   }
 
   const modal = byId('authModal'), tabs = document.querySelectorAll('.tab');
@@ -373,8 +375,10 @@
     }).then(r => r.json().then(b => ({ ok: r.ok, b }))).then(({ ok, b }) => {
       if (btn) { btn.disabled = false; btn.textContent = label; }
       if (ok && b.user) {
-        toast('Signed in — opening your dashboard…', 'fa-circle-check');
-        window.location.href = '/s-admin';
+        setUser({ name: b.user.name || b.user.email, email: b.user.email, role: b.user.role, verified: b.user.verified });
+        toast(b.redirect === '/map' ? 'Signed in — opening the live map…' : 'Signed in — opening your dashboard…', 'fa-circle-check');
+        // Staff → /s-admin, buyers → /map, developers and partners → /dashboard.
+        window.location.href = b.redirect || '/dashboard';
       } else {
         toast((b.error && b.error.message) || 'Invalid login credentials', 'fa-triangle-exclamation');
       }
@@ -386,7 +390,25 @@
   if (signupForm) signupForm.addEventListener('submit', e => {
     e.preventDefault(); if (!signupForm.reportValidity()) return;
     const role = currentRole(), fd = Object.fromEntries(new FormData(signupForm));
-    success({ name: fd.name.trim(), email: fd.email.trim().toLowerCase(), mobile: (fd.mobile || '').trim(), role, verified: role === 'buyer' }, true);
+    // Only the active role's fieldset is enabled, so fd holds just that role's extras.
+    const { name, email, mobile, ...profile } = fd;
+    const btn = byId('signupBtn'); const label = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating account…'; }
+    fetch('/api/auth/signup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin',
+      body: JSON.stringify({ role, name: (name || '').trim(), email: (email || '').trim().toLowerCase(), mobile: (mobile || '').trim(), password: byId('su-pass').value, profile }),
+    }).then(r => r.json().then(b => ({ ok: r.ok, b }))).then(({ ok, b }) => {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+      if (ok && b.user) {
+        success({ name: b.user.name, email: b.user.email, role: b.user.role, verified: b.user.verified }, true);
+        setTimeout(() => { window.location.href = b.redirect || '/dashboard'; }, 900);
+      } else {
+        toast((b.error && b.error.message) || 'Could not create your account', 'fa-triangle-exclamation');
+      }
+    }).catch(() => {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+      toast('Network error — please try again', 'fa-triangle-exclamation');
+    });
   });
   document.querySelectorAll('.btn-google').forEach(b => b.addEventListener('click', () => toast('Google sign-in is coming soon', 'fa-circle-info')));
   document.querySelectorAll('.open-signin').forEach(b => b.addEventListener('click', e => { e.preventDefault(); openModal('signin'); }));
@@ -403,8 +425,17 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal && modal.classList.contains('is-open')) closeModal(); });
   if (byId('userBtn')) byId('userBtn').addEventListener('click', e => { e.stopPropagation(); byId('userMenu').classList.toggle('open'); });
   document.addEventListener('click', e => { if (byId('userChip') && !byId('userChip').contains(e.target)) byId('userMenu').classList.remove('open'); });
-  if (byId('signOutBtn')) byId('signOutBtn').addEventListener('click', () => { setUser(null); byId('userMenu').classList.remove('open'); toast('You’re signed out', 'fa-right-from-bracket'); });
+  if (byId('signOutBtn')) byId('signOutBtn').addEventListener('click', () => {
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+    setUser(null); byId('userMenu').classList.remove('open'); toast('You’re signed out', 'fa-right-from-bracket');
+  });
   applySession();
+  // The server session is the source of truth; the localStorage copy only keeps
+  // the map unlocked without a flash on load. Drop it if the session has expired.
+  fetch('/api/auth/session', { credentials: 'same-origin' }).then(r => r.json()).then(b => {
+    const s = b && b.session && b.session.user;
+    setUser(s ? { name: s.name || s.email, email: s.email, role: s.role, verified: s.verified } : null);
+  }).catch(() => {});
 
   // The shared <SiteHeader/> lives outside this markup; it asks us to open the
   // auth modal via a window event instead of a class handler.

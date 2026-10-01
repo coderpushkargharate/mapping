@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser } from '@/lib/auth';
+import { getStaffUser } from '@/lib/auth';
 import { runDbOp, type DbOp } from '@/lib/db-engine';
+import { withMediaUrls } from '@/lib/pin-media';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,14 +33,31 @@ const PUBLIC_TABLES = new Set([
   'area_boundaries',
 ]);
 
+function withoutHistoryImages(data: unknown): unknown {
+  const strip = (h: unknown) => {
+    if (!h || typeof h !== 'object') return h;
+    const entry = h as Record<string, unknown>;
+    const row = entry.row_data as Record<string, unknown> | undefined;
+    if (!row || typeof row !== 'object') return h;
+    const { image, brochure_image, ...rest } = row;
+    return { ...entry, row_data: { ...rest, has_image: !!image, has_brochure: !!brochure_image } };
+  };
+  return Array.isArray(data) ? data.map(strip) : strip(data);
+}
+
 function invalid(details?: unknown) {
   return NextResponse.json({ data: null, error: { message: 'Invalid request', details } }, { status: 400 });
 }
 
 async function handle(op: DbOp) {
-  const user = await getCurrentUser();
+  const user = await getStaffUser();
   const result = await runDbOp(op, !!user);
-  const res = NextResponse.json({ data: result.data, error: result.error }, { status: result.status });
+  // Stored images (pin logos, brochures, infra icons) go out as cacheable URLs, not inline base64.
+  let data = result.data ? withMediaUrls(op.table, result.data) : result.data;
+  // History lists only show each entry's number/name; the stored copy keeps its
+  // images in the database (and backups), and restores happen server-side.
+  if (op.table === 'pins_history' && op.action === 'select' && data) data = withoutHistoryImages(data);
+  const res = NextResponse.json({ data, error: result.error }, { status: result.status });
 
   // Cache only anonymous reads of public tables. Everything else stays private.
   if (op.action === 'select' && PUBLIC_TABLES.has(op.table) && !user) {

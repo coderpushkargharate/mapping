@@ -185,7 +185,10 @@
     return fetch('/api/auth/session', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (b) {
-        self._session = (b && b.session) ? b.session : null;
+        // Only staff sessions unlock admin mode; buyer/developer/agent accounts browse as visitors.
+        var s = (b && b.session) ? b.session : null;
+        var r = s && s.user && s.user.role;
+        self._session = (r === 'admin' || r === 'employee') ? s : null;
         self._loaded = true;
         return self._session;
       })

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import LegacyApp from '@/components/LegacyApp';
+import LegacyPreloads from '@/components/LegacyPreloads';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
 
@@ -22,5 +23,10 @@ export const metadata: Metadata = {
 };
 
 export default function Map3DPage() {
-  return <LegacyApp slug="map-3d" />;
+  return (
+    <>
+      <LegacyPreloads slug="map-3d" />
+      <LegacyApp slug="map-3d" />
+    </>
+  );
 }

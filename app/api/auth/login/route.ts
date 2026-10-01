@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { getDb } from '@/lib/mongodb';
-import { createSessionToken, setSessionCookie } from '@/lib/auth';
+import { createSessionToken, homePathFor, setSessionCookie } from '@/lib/auth';
+import { verificationOf } from '@/lib/verification';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,5 +39,8 @@ export async function POST(req: NextRequest) {
   const token = await createSessionToken(sessionUser);
   setSessionCookie(token);
 
-  return NextResponse.json({ user: sessionUser });
+  return NextResponse.json({
+    user: { ...sessionUser, name: String(user.name || ''), verified: verificationOf(user) === 'approved' },
+    redirect: homePathFor(sessionUser.role),
+  });
 }

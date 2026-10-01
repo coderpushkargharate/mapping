@@ -90,23 +90,73 @@ async function enter(user) {
   route();
 }
 
+// Sidebar sections: icon (inline SVG — no icon font to download), name and a
+// one-line explanation. `count` maps to refreshCounts()' data-count keys.
+const NAV = [
+  { key: 'queue', label: 'Review queue', hint: 'Check & approve builder submissions', count: 'review',
+    icon: '<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/>' },
+  { key: 'builders', label: 'Builders & links', hint: 'Builders and their secure upload links', count: 'builders',
+    icon: '<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M15 10h.01"/>' },
+  { key: 'import', label: 'Bulk upload', hint: 'Import many projects from CSV / Excel', count: '',
+    icon: '<path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>' },
+  { key: 'live', label: 'Live projects', hint: 'Published projects now on the map', count: 'live',
+    icon: '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>' },
+];
+const svg = (paths, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+const SIDE_KEY = 'mg_intake_side'; // 'docked' = open; anything else = icon strip
+
 function drawShell() {
+  // Inside the super-admin (iframe) the admin header owns the account & sign-out,
+  // so no email or sign-out is shown here; standalone keeps a Sign out link only.
+  let embedded = false;
+  try { embedded = window.self !== window.top; } catch { embedded = true; }
   root.innerHTML = '';
   root.appendChild(h(`<div class="shell">
-    <aside class="side">
-      <div class="logo">Mappingg</div>
-      <div class="sub">Project Intake ${cfg.environment && cfg.environment !== 'production' ? `<span class="env">${esc(cfg.environment)}</span>` : ''}</div>
+    <aside class="side" id="side" aria-label="Project intake sections">
+      <div class="side-head">
+        <span class="side-mark" aria-hidden="true">${svg('<path d="M4 6h16M4 12h16M4 18h10"/>')}</span>
+        <div class="side-title"><b>Project Intake</b>${cfg.environment && cfg.environment !== 'production' ? ` <span class="env">${esc(cfg.environment)}</span>` : ''}<small>Mappingg admin</small></div>
+      </div>
       <nav class="nav">
-        <a href="#/queue" data-nav="queue">Review queue <span class="count" data-count="review"></span></a>
-        <a href="#/builders" data-nav="builders">Builders &amp; links <span class="count" data-count="builders"></span></a>
-        <a href="#/import" data-nav="import">Bulk upload</a>
-        <a href="#/live" data-nav="live">Live projects <span class="count" data-count="live"></span></a>
+        ${NAV.map(n => `<a href="#/${n.key}" data-nav="${n.key}" title="${esc(n.label)}">
+          <span class="ni">${svg(n.icon)}${n.count ? `<span class="count" data-count="${n.count}"></span>` : ''}</span>
+          <span class="nt"><b>${esc(n.label)}</b><small>${esc(n.hint)}</small></span>
+        </a>`).join('')}
       </nav>
-      <div class="foot">${esc(ctx.user.email)}<br><button class="linkish" id="signout">Sign out</button></div>
+      ${embedded ? '' : `<div class="foot"><button class="linkish" id="signout">${svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>')}<span>Sign out</span></button></div>`}
     </aside>
     <main class="main"><div class="page" id="page"></div></main>
   </div>`));
-  $('#signout').addEventListener('click', async () => { await ctx.client.auth.signOut(); location.hash = ''; });
+  const so = $('#signout');
+  if (so) so.addEventListener('click', async () => { await ctx.client.auth.signOut(); location.hash = ''; });
+  setupSide();
+}
+
+// Icon strip by default; a small round button on the sidebar's edge opens /
+// closes it (no hover). The choice is remembered on this device.
+function setupSide() {
+  const body = document.body, side = $('#side');
+  let open = false;
+  try { open = localStorage.getItem(SIDE_KEY) === 'docked'; } catch {}
+  const edge = document.createElement('button');
+  edge.type = 'button';
+  edge.className = 'side-edge';
+  edge.setAttribute('aria-controls', 'side');
+  side.after(edge);
+  const apply = () => {
+    body.classList.toggle('side-docked', open);
+    body.classList.toggle('side-rail', !open);
+    edge.innerHTML = svg(open ? '<path d="M15 18l-6-6 6-6"/>' : '<path d="M9 18l6-6-6-6"/>');
+    edge.title = open ? 'Close sidebar' : 'Open sidebar';
+    edge.setAttribute('aria-label', edge.title);
+    edge.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  apply();
+  edge.addEventListener('click', () => {
+    open = !open;
+    try { localStorage.setItem(SIDE_KEY, open ? 'docked' : 'rail'); } catch {}
+    apply();
+  });
 }
 
 let lastHash = '';

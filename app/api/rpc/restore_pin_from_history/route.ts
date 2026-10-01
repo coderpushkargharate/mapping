@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser } from '@/lib/auth';
+import { getStaffUser } from '@/lib/auth';
 import { restorePinFromHistory } from '@/lib/db-engine';
 
 export const runtime = 'nodejs';
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ data: null, error: { message: 'p_history_id is required' } }, { status: 400 });
   }
-  const user = await getCurrentUser();
+  const user = await getStaffUser();
   const result = await restorePinFromHistory(parsed.data.p_history_id, !!user);
   return NextResponse.json({ data: result.data, error: result.error }, { status: result.status });
 }

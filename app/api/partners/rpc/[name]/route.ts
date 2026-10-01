@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { getStaffUser } from '@/lib/auth';
 import { runPartnersRpc, ADMIN_RPCS, PUBLIC_RPCS } from '@/lib/partners-engine';
 
 export const runtime = 'nodejs';
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: { name: strin
     return NextResponse.json({ data: null, error: { message: 'Unknown function' } }, { status: 404 });
   }
 
-  const user = await getCurrentUser();
+  const user = await getStaffUser();
   if (ADMIN_RPCS.has(name) && name !== 'is_admin' && !user) {
     return NextResponse.json({ data: null, error: { message: 'Not authorized' } }, { status: 401 });
   }

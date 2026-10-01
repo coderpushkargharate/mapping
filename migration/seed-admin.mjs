@@ -8,6 +8,7 @@
 // The Supabase auth users could NOT be exported (GoTrue password hashes are not
 // readable via the API), so admin accounts are re-created here explicitly.
 
+import './dns-fix.mjs';
 import { MongoClient } from 'mongodb';
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';

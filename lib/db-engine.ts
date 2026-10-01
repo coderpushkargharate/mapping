@@ -59,9 +59,10 @@ type CacheEntry = { data: unknown; exp: number };
 const g = globalThis as unknown as { __pubReadCache?: Map<string, CacheEntry> };
 const readCache: Map<string, CacheEntry> = g.__pubReadCache || (g.__pubReadCache = new Map());
 
-function cacheKey(op: DbOp): string {
+function cacheKey(op: DbOp, isAuthed: boolean): string {
   return [
     op.table,
+    isAuthed ? 'staff' : 'public', // pins differ: hidden ones are staff-only
     op.columns || '*',
     JSON.stringify(op.filters || []),
     JSON.stringify(op.order || null),
@@ -167,7 +168,7 @@ export async function runDbOp(op: DbOp, isAuthed: boolean): Promise<DbResult> {
     switch (op.action) {
       case 'select': {
         const canCache = PUBLIC_READ.has(op.table);
-        const key = canCache ? cacheKey(op) : '';
+        const key = canCache ? cacheKey(op, isAuthed) : '';
         if (canCache) {
           const hit = readCache.get(key);
           if (hit && hit.exp > Date.now()) {
@@ -176,6 +177,8 @@ export async function runDbOp(op: DbOp, isAuthed: boolean): Promise<DbResult> {
         }
 
         const query = buildQuery(op.filters);
+        // Pins switched off in the editor ("Show on public map") are staff-only.
+        if (op.table === 'pins' && !isAuthed) query.hidden = { $ne: true };
         const projection = buildProjection(op.columns);
         let cursor = coll.find(query, projection ? { projection } : undefined);
         if (op.order) cursor = cursor.sort({ [op.order.col]: op.order.ascending ? 1 : -1 });

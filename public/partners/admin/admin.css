@@ -7,20 +7,53 @@
 .login label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 13px; }
 .linkish { background: none; border: 0; padding: 0; color: var(--brand); font: inherit; font-weight: 600; cursor: pointer; }
 
-/* ---------- Shell ---------- */
-.shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
-.side { background: #0f1a1f; color: #cfd8dc; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; }
-.side .logo { color: #fff; font-weight: 800; font-size: 19px; padding: 4px 10px 2px; letter-spacing: -0.02em; }
-.side .sub { font-size: 12px; color: #8aa0a8; padding: 0 10px 14px; display: flex; gap: 8px; align-items: center; }
-.env { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; background: #b86e00; color: #fff; padding: 2px 6px; border-radius: 4px; }
-.nav a { display: flex; justify-content: space-between; align-items: center; padding: 9px 10px; border-radius: 8px; color: #cfd8dc; text-decoration: none; font-weight: 500; }
-.nav a:hover { background: rgba(255,255,255,.06); }
-.nav a.active { background: rgba(255,255,255,.12); color: #fff; }
-.nav .count { font-size: 12px; background: rgba(255,255,255,.14); padding: 1px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+/* ---------- Shell: sidebar rail that opens on hover ---------- */
+.shell { --side-rail: 68px; --side-full: 288px; --side-w: var(--side-rail); min-height: 100vh; }
+body.side-docked .shell { --side-w: var(--side-full); }
+.side { position: fixed; top: 0; left: 0; bottom: 0; z-index: 40; width: var(--side-w); overflow: hidden;
+  display: flex; flex-direction: column; gap: 4px; padding: 14px 10px; background: #fff; border-right: 1px solid var(--line);
+  transition: width .18s ease, box-shadow .18s ease; }
+body.side-peek .side { width: var(--side-full); box-shadow: 16px 0 40px -14px rgba(16,24,40,.28); }
+.main { margin-left: var(--side-w); transition: margin-left .18s ease; }
+
+.side-head { display: flex; align-items: center; gap: 10px; padding: 2px 4px 12px; margin-bottom: 4px; border-bottom: 1px solid var(--line); min-height: 52px; }
+.side-mark { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 12px; background: var(--brand-soft); color: var(--brand); }
+.side-title { flex: 1; min-width: 0; white-space: nowrap; }
+.side-title b { font-size: 14.5px; letter-spacing: -.01em; }
+.side-title small { display: block; font-size: 11.5px; color: var(--ink-3); }
+.side-pin { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--line-2); background: #fff; color: var(--ink-2); cursor: pointer; }
+.side-pin:hover { background: var(--muted-bg); color: var(--ink); }
+.env { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; background: #b86e00; color: #fff; padding: 1px 6px; border-radius: 4px; vertical-align: 2px; }
+
+.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav a { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 12px; color: var(--ink); text-decoration: none; white-space: nowrap; transition: background .15s; }
+.nav a:hover { background: var(--muted-bg); }
+.nav a:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.nav .ni { position: relative; width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 9px; background: var(--muted-bg); color: var(--brand); }
+.nav .nt { min-width: 0; }
+.nav .nt b { display: block; font-size: 13.5px; font-weight: 600; }
+.nav .nt small { display: block; font-size: 11.5px; line-height: 1.35; color: var(--ink-3); white-space: normal; }
+.nav a.active { background: var(--brand); color: #fff; box-shadow: 0 6px 16px -8px rgba(15,91,79,.7); }
+.nav a.active .ni { background: rgba(255,255,255,.18); color: #fff; }
+.nav a.active .nt small { color: rgba(255,255,255,.8); }
+/* Count badge sits on the icon so it's visible on the rail too. */
+.nav .count { position: absolute; top: -6px; right: -8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center;
+  font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; background: var(--ink-2); color: #fff; box-shadow: 0 0 0 2px #fff; }
 .nav .count.hot { background: #e5a33b; color: #1b1300; }
-.side .foot { margin-top: auto; font-size: 12px; color: #8aa0a8; padding: 10px; border-top: 1px solid rgba(255,255,255,.08); }
-.side .foot button { color: #fff; }
-.main { min-width: 0; }
+
+/* Rail state: icons only (names show as tooltips). */
+body.side-rail:not(.side-peek) .side-title,
+body.side-rail:not(.side-peek) .side-pin,
+body.side-rail:not(.side-peek) .nav .nt,
+body.side-rail:not(.side-peek) .foot span { display: none; }
+body.side-rail:not(.side-peek) .side-head { justify-content: center; padding-left: 0; padding-right: 0; }
+body.side-rail:not(.side-peek) .nav a { justify-content: center; }
+
+.side .foot { margin-top: auto; padding: 10px 4px 0; border-top: 1px solid var(--line); }
+.side .foot .linkish { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border-radius: 10px; color: var(--ink-2); font-weight: 600; }
+.side .foot .linkish:hover { background: var(--muted-bg); color: var(--ink); }
+body.side-rail:not(.side-peek) .side .foot .linkish { justify-content: center; }
+
 .page { padding: 28px 32px 80px; max-width: 1320px; }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .page-head p { margin: 4px 0 0; color: var(--ink-3); }
@@ -85,10 +118,25 @@
   .stats { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 800px) {
-  .shell { grid-template-columns: 1fr; }
-  .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }
-  .side .sub, .side .foot { display: none; }
-  .nav { display: flex; flex-wrap: wrap; gap: 4px; }
+  .side, body.side-peek .side { position: sticky; top: 0; width: auto; height: auto; flex-direction: row; align-items: center; gap: 8px; padding: 8px 10px; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; box-shadow: none; }
+  .main, body.side-docked .main { margin-left: 0; }
+  .side-head { border: 0; padding: 0; margin: 0; min-height: 0; }
+  .side-head { display: none; }
+  .side-title, .side-pin, .side .foot { display: none !important; }
+  .nav { flex-direction: row; gap: 6px; }
+  .nav a { padding: 6px 10px 6px 6px; flex: none; }
+  .nav .nt, body.side-rail:not(.side-peek) .nav .nt { display: block; }
+  .nav .nt small { display: none; }
+  .nav .ni { width: 28px; height: 28px; }
   .page { padding: 20px 16px 80px; }
   .two-col { grid-template-columns: 1fr; }
 }
+
+/* ---------- Open / close button on the sidebar edge (replaces hover) ---------- */
+.side-edge { position: fixed; z-index: 41; top: 26px; left: calc(var(--side-w) - 13px); width: 26px; height: 26px; padding: 0;
+  border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line-2); background: #fff; color: var(--ink-2);
+  box-shadow: 0 4px 12px -4px rgba(16,24,40,.35); cursor: pointer; transition: left .18s ease, background .15s, color .15s; }
+.side-edge svg { width: 14px; height: 14px; }
+.side-edge:hover { background: var(--brand); border-color: var(--brand); color: #fff; }
+.side-edge:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (max-width: 800px) { .side-edge { display: none; } }

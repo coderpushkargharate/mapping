@@ -71,3 +71,24 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   if (!token) return null;
   return verifySessionToken(token);
 }
+
+// Staff (owner + employees) run the super-admin and may write map data. Public
+// accounts (buyer / developer / agent) only get their own dashboard.
+export const STAFF_ROLES = ['admin', 'employee'];
+export const PUBLIC_ROLES = ['buyer', 'developer', 'agent'] as const;
+export type PublicRole = (typeof PUBLIC_ROLES)[number];
+
+export const isStaffRole = (role?: string) => STAFF_ROLES.includes(String(role));
+
+/** The current session only if it belongs to staff — use this to guard admin data. */
+export async function getStaffUser(): Promise<SessionUser | null> {
+  const user = await getCurrentUser();
+  return user && isStaffRole(user.role) ? user : null;
+}
+
+/** Where a signed-in user lands: staff → super-admin, buyers → the live map, developers/agents → their dashboard. */
+export function homePathFor(role?: string): string {
+  if (isStaffRole(role)) return '/s-admin';
+  if (role === 'buyer') return '/map';
+  return '/dashboard';
+}

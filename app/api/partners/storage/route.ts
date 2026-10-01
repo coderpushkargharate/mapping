@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GridFSBucket } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
-import { getCurrentUser } from '@/lib/auth';
+import { getStaffUser } from '@/lib/auth';
 import { tokenIsValid } from '@/lib/partners-engine';
 
 export const runtime = 'nodejs';
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   // Authorize: a signed-in admin may upload anywhere; a builder may upload only
   // under their own active link folder (submission-media/links/<token>/…).
-  const user = await getCurrentUser();
+  const user = await getStaffUser();
   let allowed = !!user;
   if (!allowed) {
     const token = req.nextUrl.searchParams.get('t');
@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
 
   // project-media is public (shown on the live map); everything else is private.
   if (!(isPublic && bucketName === 'project-media')) {
-    if (!(await getCurrentUser())) return NextResponse.json({ error: { message: 'Not authorized' } }, { status: 401 });
+    if (!(await getStaffUser())) return NextResponse.json({ error: { message: 'Not authorized' } }, { status: 401 });
   }
 
   const { db, gfs } = await bucket();

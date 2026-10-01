@@ -1,4 +1,22 @@
+import dns from 'node:dns';
 import { MongoClient, Db } from 'mongodb';
+
+// mongodb+srv:// URIs need a DNS SRV lookup. On some Windows networks the only
+// resolver is an IPv6 link-local address that Node can't use, so Node falls back
+// to 127.0.0.1 and the lookup fails with `querySrv ECONNREFUSED`. When Node is
+// left with only loopback resolvers, use public DNS instead (override with
+// MONGODB_DNS_SERVERS, comma-separated).
+const isLoopback = (s: string) => s === '::1' || s.startsWith('127.');
+// The driver resolves SRV via dns.promises, which can hold its own resolver.
+const useDnsServers = (servers: string[]) => {
+  dns.setServers(servers);
+  dns.promises.setServers(servers);
+};
+if (process.env.MONGODB_DNS_SERVERS) {
+  useDnsServers(process.env.MONGODB_DNS_SERVERS.split(',').map((s) => s.trim()));
+} else if (dns.getServers().every(isLoopback) || dns.promises.getServers().every(isLoopback)) {
+  useDnsServers(['8.8.8.8', '1.1.1.1']);
+}
 
 // Reusable, cached MongoDB connection for Next.js.
 //
@@ -20,25 +38,30 @@ const options = {
   serverSelectionTimeoutMS: 8000,
 };
 
-let clientPromise: Promise<MongoClient>;
-
 declare global {
   // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
-if (process.env.NODE_ENV === 'development') {
-  if (!global._mongoClientPromise) {
-    global._mongoClientPromise = new MongoClient(uri, options).connect();
+const moduleCache: { _mongoClientPromise?: Promise<MongoClient> } = {};
+
+// A failed connect is dropped from the cache so the next request retries,
+// instead of every request reusing the rejected promise until a restart
+// (including one left on the global by an earlier hot-reloaded module).
+async function getClient(): Promise<MongoClient> {
+  const cache = process.env.NODE_ENV === 'development' ? global : moduleCache;
+  const p = (cache._mongoClientPromise ??= new MongoClient(uri!, options).connect());
+  try {
+    return await p;
+  } catch (e) {
+    if (cache._mongoClientPromise === p) cache._mongoClientPromise = undefined;
+    throw e;
   }
-  clientPromise = global._mongoClientPromise;
-} else {
-  clientPromise = new MongoClient(uri, options).connect();
 }
 
 export async function getDb(): Promise<Db> {
-  const client = await clientPromise;
+  const client = await getClient();
   return client.db(dbName);
 }
 
-export default clientPromise;
+export default getClient;

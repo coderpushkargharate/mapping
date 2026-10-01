@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser } from '@/lib/auth';
+import { getStaffUser } from '@/lib/auth';
 import { runPartnersDb, type DbOp } from '@/lib/partners-engine';
 
 export const runtime = 'nodejs';
@@ -27,7 +27,7 @@ const opSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const user = await getCurrentUser();
+  const user = await getStaffUser();
   if (!user) {
     return NextResponse.json({ data: null, error: { message: 'Not authorized' } }, { status: 401 });
   }

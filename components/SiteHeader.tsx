@@ -34,6 +34,9 @@ export default function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  // Where this account's "home" is: /s-admin (staff), /dashboard (developer/agent) or /map (buyer).
+  const [home, setHome] = useState('/dashboard');
+  const isBuyer = home === '/map';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -43,12 +46,19 @@ export default function SiteHeader() {
   }, []);
 
   useEffect(() => {
-    // Real session (owner/employee) → show Dashboard instead of Sign in.
+    // Any real session → show the account's home (Dashboard, or Live map for buyers).
     fetch('/api/auth/session', { credentials: 'same-origin' })
       .then((r) => r.json())
-      .then((b) => setSignedIn(!!(b && b.session)))
+      .then((b) => { setSignedIn(!!(b && b.session)); if (b && b.session && b.session.home) setHome(b.session.home); })
       .catch(() => setSignedIn(false));
   }, [pathname]);
+
+  async function signOut() {
+    setOpen(false);
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch {}
+    try { localStorage.removeItem('mappingg_demo_user'); } catch {}
+    window.location.href = '/';
+  }
 
   function signIn() {
     setOpen(false);
@@ -75,7 +85,10 @@ export default function SiteHeader() {
 
           <div className="shd-right">
             {signedIn ? (
-              <Link href="/s-admin" className="shd-btn primary">Dashboard</Link>
+              <>
+                {isBuyer && <button className="shd-btn link" onClick={signOut}>Sign out</button>}
+                <Link href={home} className="shd-btn primary">{isBuyer ? 'Live map' : 'Dashboard'}</Link>
+              </>
             ) : (
               <>
                 <button className="shd-btn link" onClick={signIn}>Sign in</button>
@@ -107,7 +120,10 @@ export default function SiteHeader() {
             </div>
             <div className="row">
               {signedIn ? (
-                <Link href="/s-admin" className="shd-btn primary" onClick={() => setOpen(false)}>Dashboard</Link>
+                <>
+                  {isBuyer && <button className="shd-btn link" onClick={signOut}>Sign out</button>}
+                  <Link href={home} className="shd-btn primary" onClick={() => setOpen(false)}>{isBuyer ? 'Live map' : 'Dashboard'}</Link>
+                </>
               ) : (
                 <>
                   <button className="shd-btn link" onClick={signIn}>Sign in</button>

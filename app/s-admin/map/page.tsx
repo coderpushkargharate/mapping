@@ -1,4 +1,5 @@
 import LegacyApp from '@/components/LegacyApp';
+import LegacyPreloads from '@/components/LegacyPreloads';
 
 // The full map & pin editor (original team editor). Embedded inside the admin
 // "Map Editor" tab via an iframe. Auth is enforced by the parent admin layout;
@@ -6,5 +7,10 @@ import LegacyApp from '@/components/LegacyApp';
 export const dynamic = 'force-dynamic';
 
 export default function AdminMapEditor() {
-  return <LegacyApp slug="team-editor" />;
+  return (
+    <>
+      <LegacyPreloads slug="team-editor" />
+      <LegacyApp slug="team-editor" />
+    </>
+  );
 }
