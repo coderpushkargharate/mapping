@@ -104,7 +104,7 @@ function DashboardPanel({ onGo }: { onGo: (t: string) => void }) {
 function MapPanel() {
   return (
     <div className="adm-panel" style={{ padding: 0, overflow: 'hidden' }}>
-      <iframe title="Map editor" src="/team-editor-x7k2/map" className="adm-frame" />
+      <iframe title="Map editor" src="/s-admin/map" className="adm-frame" />
     </div>
   );
 }
@@ -116,7 +116,7 @@ function MapPanel() {
 function IntakePanel() {
   return (
     <div className="adm-panel" style={{ padding: 0, overflow: 'hidden' }}>
-      <iframe title="Projects intake" src="/s-admin" className="adm-frame" />
+      <iframe title="Projects intake" src="/intake" className="adm-frame" />
     </div>
   );
 }
@@ -443,6 +443,28 @@ export default function AdminApp({ user }: { user: AdminUser }) {
   const initials = (user.name || user.email || '?').slice(0, 2).toUpperCase();
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // "Lock to this panel": remember on THIS device that the installed app should
+  // open straight to /s-admin (handled by <LockRedirect/> in the root layout).
+  const [locked, setLocked] = useState(false);
+  useEffect(() => {
+    try { setLocked(localStorage.getItem('mg_lock_panel') === '/s-admin'); } catch {}
+  }, []);
+  function toggleLock() {
+    try {
+      if (localStorage.getItem('mg_lock_panel')) {
+        localStorage.removeItem('mg_lock_panel');
+        setLocked(false);
+        flash('Unlocked — the app opens normally now.');
+      } else {
+        localStorage.setItem('mg_lock_panel', '/s-admin');
+        setLocked(true);
+        flash('Locked — the installed app will open straight to s-admin.');
+      }
+    } catch {
+      flash('Could not change the lock on this device.', true);
+    }
+  }
+
   async function logout() {
     try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch {}
     router.push('/'); router.refresh();
@@ -462,6 +484,9 @@ export default function AdminApp({ user }: { user: AdminUser }) {
           {menuOpen && (
             <div className="adm2-menu">
               <button onClick={() => { setTab('profile'); setMenuOpen(false); }}><i className="fas fa-user" /> Profile</button>
+              <button onClick={() => { toggleLock(); setMenuOpen(false); }}>
+                <i className={`fas ${locked ? 'fa-lock-open' : 'fa-lock'}`} /> {locked ? 'Unlock app' : 'Lock to this panel'}
+              </button>
               <button onClick={logout}><i className="fas fa-right-from-bracket" /> Sign out</button>
             </div>
           )}

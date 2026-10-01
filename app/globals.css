@@ -6,6 +6,14 @@ body {
   padding: 0;
 }
 
+/* Mappingg branding only: hide the legacy "by Associatte" secondary logo that
+   the public map's brand block renders. These classes exist only in that block,
+   so the primary Mappingg logo and everything else are unaffected. */
+.brand-by,
+.logo-secondary {
+  display: none !important;
+}
+
 /* Screen-reader-only helper for the SEO heading on the public map page. */
 .sr-only {
   position: absolute;

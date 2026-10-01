@@ -361,6 +361,30 @@
   .ipg-crumbs { font-size: 12px; }
 }
 
+/* ---- FAQ accordion (used on /faq) ---- */
+.ipg-faq { max-width: 820px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+.ipg-faq-item {
+  background: #fff; border: 1px solid var(--line); border-radius: 16px;
+  padding: 2px 20px; box-shadow: var(--sh-sm); transition: border-color .2s, box-shadow .2s;
+}
+.ipg-faq-item[open] { border-color: var(--park-200); box-shadow: 0 8px 26px -18px rgba(15,92,71,.4); }
+.ipg-faq-item summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; padding: 18px 0; font-weight: 650; font-size: 16.5px; color: var(--ink);
+}
+.ipg-faq-item summary::-webkit-details-marker { display: none; }
+.ipg-faq-item summary i {
+  flex-shrink: 0; width: 28px; height: 28px; display: grid; place-items: center;
+  border-radius: 50%; background: var(--park-50); color: var(--park); font-size: 13px; transition: transform .2s;
+}
+.ipg-faq-item[open] summary i { transform: rotate(45deg); }
+.ipg-faq-item p { margin: 0; padding: 0 0 20px; color: var(--text); font-size: 15.5px; line-height: 1.65; }
+.ipg-faq-item p a { color: var(--forest); font-weight: 600; }
+@media (max-width: 620px) {
+  .ipg-faq-item { padding: 2px 16px; }
+  .ipg-faq-item summary { font-size: 15.5px; padding: 16px 0; }
+}
+
 /* ---- Print: just the document ---- */
 @media print {
   .shd, .ipg-toc, .ipg-foot, .ipg-cta, .ipg-top, .ipg-progress, .ipg-hero .hero-icon, .ipg-hero .actions { display: none !important; }

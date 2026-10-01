@@ -374,7 +374,7 @@
       if (btn) { btn.disabled = false; btn.textContent = label; }
       if (ok && b.user) {
         toast('Signed in — opening your dashboard…', 'fa-circle-check');
-        window.location.href = '/team-editor-x7k2';
+        window.location.href = '/s-admin';
       } else {
         toast((b.error && b.error.message) || 'Invalid login credentials', 'fa-triangle-exclamation');
       }

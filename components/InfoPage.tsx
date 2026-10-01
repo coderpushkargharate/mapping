@@ -29,8 +29,10 @@ const LEGAL_LINKS = [
 const EXPLORE_LINKS = [
   { href: '/map', label: 'Live map' },
   { href: '/mundhwa-map-3d', label: '3D map' },
+  { href: '/how-it-works', label: 'How it works' },
+  { href: '/features', label: 'Features' },
   { href: '/blog', label: 'Blog' },
-  { href: '/#faq', label: 'FAQ' },
+  { href: '/faq', label: 'FAQ' },
 ];
 
 export default function InfoPage({

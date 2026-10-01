@@ -391,7 +391,7 @@ export const LANDING_BODY = `
           <a href="#" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
         </div>
       </div>
-      <div><h4>Explore</h4><ul><li><a href="/map" class="live-link">Live map</a></li><li><a href="#features">Features</a></li><li><a href="#how">How it works</a></li></ul></div>
+      <div><h4>Explore</h4><ul><li><a href="/map" class="live-link">Live map</a></li><li><a href="/features">Features</a></li><li><a href="/how-it-works">How it works</a></li><li><a href="/faq">FAQ</a></li></ul></div>
       <div><h4>For business</h4><ul><li><a href="#" class="open-signup" data-role="developer">Developers</a></li><li><a href="#" class="open-signup" data-role="agent">Channel partners</a></li><li><a href="/advertise">Advertise</a></li><li><a href="/contact">Contact</a></li></ul></div>
       <div><h4>Company</h4><ul><li><a href="/about">About</a></li><li><a href="/blog">Blog</a></li><li><a href="/careers">Careers</a></li><li><a href="/privacy">Privacy policy</a></li></ul></div>
     </div>

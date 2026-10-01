@@ -1,0 +1,99 @@
+/* Dedicated sign-in page — matches the site's forest/gold brand palette so it
+   feels like one product with the rest of Mappingg. */
+.sgn {
+  --forest: #0f5c47; --forest-deep: #0a4535; --ink: #1d2b26; --text: #46524d;
+  --muted: #76807b; --line: #e7e3d9; --paper: #fff; --land: #f6f4ee; --gold: #b0924f;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #eaf4ef 0%, transparent 60%),
+    var(--land);
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+.sgn * { box-sizing: border-box; }
+
+.sgn-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 32px 28px;
+  box-shadow: 0 18px 50px -24px rgba(15, 92, 71, .35);
+}
+
+.sgn-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 18px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.sgn-brand .mark {
+  width: 34px; height: 48px; flex-shrink: 0;
+  background: url('/img/mappingg-icon-mark.png') center/contain no-repeat;
+}
+.sgn-brand b { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.sgn-brand b em { color: var(--gold); font-style: normal; font-weight: 700; }
+
+.sgn-title { text-align: center; font-size: 19px; font-weight: 700; margin: 0 0 4px; }
+.sgn-sub { text-align: center; color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
+
+.sgn-field { margin-bottom: 14px; }
+.sgn-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.sgn-field input {
+  width: 100%;
+  padding: 12px 13px;
+  font-size: 15px;
+  border: 1.5px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--ink);
+  transition: border-color .15s, box-shadow .15s;
+}
+.sgn-field input:focus {
+  outline: none;
+  border-color: var(--forest);
+  box-shadow: 0 0 0 3px rgba(15, 92, 71, .14);
+}
+
+.sgn-btn {
+  width: 100%;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--forest);
+  border: none;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background .15s, transform .05s;
+  margin-top: 4px;
+}
+.sgn-btn:hover { background: var(--forest-deep); }
+.sgn-btn:active { transform: translateY(1px); }
+.sgn-btn:disabled { opacity: .65; cursor: default; }
+
+.sgn-err {
+  background: #fdecea;
+  color: #a21b1b;
+  border: 1px solid #f5c6c2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.sgn-foot { text-align: center; margin-top: 18px; font-size: 13px; }
+.sgn-foot a { color: var(--forest); text-decoration: none; font-weight: 600; }
+.sgn-foot a:hover { text-decoration: underline; }
+
+@media (max-width: 420px) {
+  .sgn-card { padding: 26px 20px; border-radius: 15px; }
+}

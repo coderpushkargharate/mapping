@@ -3,6 +3,7 @@ import './globals.css';
 import PwaRegister from '@/components/PwaRegister';
 import InstallPrompt from '@/components/InstallPrompt';
 import SmoothLinks from '@/components/SmoothLinks';
+import LockRedirect from '@/components/LockRedirect';
 import { getPublicSettings } from '@/lib/site-settings';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
@@ -89,6 +90,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             />
           </noscript>
         ) : null}
+        <LockRedirect />
         <SmoothLinks />
         {children}
         <PwaRegister />

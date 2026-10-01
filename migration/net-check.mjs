@@ -5,7 +5,7 @@ const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new'
 const ctx = browser.defaultBrowserContext();
 await ctx.overridePermissions(base, ['geolocation']);
 
-for (const path of ['/', '/team-editor-x7k2', '/mundhwa-map-3d']) {
+for (const path of ['/', '/s-admin', '/mundhwa-map-3d']) {
   const page = await browser.newPage();
   await page.setGeolocation({ latitude: 18.5256, longitude: 73.9226 });
   const supabaseHits = [];

@@ -7,14 +7,15 @@ import './site-header.css';
 
 // The single header shared by every public page (home, blog, …) so the site
 // looks like one product. Navigation is client-side (no reload) via <Link>, and
-// "Sign in" opens the modal on the home page or routes home (?signin=1) elsewhere.
+// "Sign in" opens the full auth modal: in-place on the home page (via a window
+// event), or by routing home with ?signin=1 (also reachable directly at /signin).
 const LINKS = [
   { href: '/', label: 'Home', match: (p: string) => p === '/' },
   { href: '/map', label: 'Live map', match: (p: string) => p === '/map' || p.startsWith('/map/') },
-  { href: '/#how', label: 'How it works', match: () => false },
-  { href: '/#features', label: 'Features', match: () => false },
+  { href: '/how-it-works', label: 'How it works', match: (p: string) => p === '/how-it-works' },
+  { href: '/features', label: 'Features', match: (p: string) => p === '/features' },
   { href: '/blog', label: 'Blog', match: (p: string) => p.startsWith('/blog') },
-  { href: '/#faq', label: 'FAQ', match: () => false },
+  { href: '/faq', label: 'FAQ', match: (p: string) => p === '/faq' },
 ];
 // Secondary links shown only in the mobile menu, where the footer is a long scroll away.
 const MORE_LINKS = [
@@ -74,7 +75,7 @@ export default function SiteHeader() {
 
           <div className="shd-right">
             {signedIn ? (
-              <Link href="/team-editor-x7k2" className="shd-btn primary">Dashboard</Link>
+              <Link href="/s-admin" className="shd-btn primary">Dashboard</Link>
             ) : (
               <>
                 <button className="shd-btn link" onClick={signIn}>Sign in</button>
@@ -106,7 +107,7 @@ export default function SiteHeader() {
             </div>
             <div className="row">
               {signedIn ? (
-                <Link href="/team-editor-x7k2" className="shd-btn primary" onClick={() => setOpen(false)}>Dashboard</Link>
+                <Link href="/s-admin" className="shd-btn primary" onClick={() => setOpen(false)}>Dashboard</Link>
               ) : (
                 <>
                   <button className="shd-btn link" onClick={signIn}>Sign in</button>

@@ -7,12 +7,13 @@ const nextConfig = {
   images: { unoptimized: true },
   // Clean URLs for the partners intake app (static assets live under
   // /public/partners, but these are the addresses people actually use):
-  //   /s-admin → admin panel (bulk CSV upload, review queue, builders, live)
-  //   /submit  → builder submission page (opened via a unique ?t=token link)
+  //   /intake → intake panel (bulk CSV upload, review queue, builders, live);
+  //             also embedded as the "Projects Intake" tab inside /s-admin
+  //   /submit → builder submission page (opened via a unique ?t=token link)
   async rewrites() {
     return [
-      { source: '/s-admin', destination: '/partners/admin/index.html' },
-      { source: '/s-admin/', destination: '/partners/admin/index.html' },
+      { source: '/intake', destination: '/partners/admin/index.html' },
+      { source: '/intake/', destination: '/partners/admin/index.html' },
       { source: '/submit', destination: '/partners/submit/index.html' },
       { source: '/submit/', destination: '/partners/submit/index.html' },
     ];
@@ -20,14 +21,14 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Never let search engines index the admin editor.
-        source: '/team-editor-x7k2',
+        // Never let search engines index the super-admin.
+        source: '/s-admin',
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
       },
       {
-        // Partners intake app is internal — never index the admin, the builder
-        // submit page, or their static assets.
-        source: '/:path(s-admin|submit|partners/.*)',
+        // Intake app + builder submit page are internal — never index them,
+        // their static assets, or the sign-in page.
+        source: '/:path(intake|submit|signin|partners/.*)',
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
       },
       {

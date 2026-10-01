@@ -8,8 +8,8 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        // Keep the admin editor and all API routes out of the index.
-        disallow: ['/team-editor-x7k2', '/api/', '/rest/'],
+        // Keep the admin panels, intake/submit apps and all API routes out of the index.
+        disallow: ['/s-admin', '/intake', '/submit', '/signin', '/partners/', '/api/', '/rest/'],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

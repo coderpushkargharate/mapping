@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer-core';
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const targets = [
   ['http://localhost:3200/', 'shot-public.png'],
-  ['http://localhost:3200/team-editor-x7k2', 'shot-editor.png'],
+  ['http://localhost:3200/s-admin', 'shot-editor.png'],
   ['http://localhost:3200/mundhwa-map-3d', 'shot-3d.png'],
 ];
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox'] });
