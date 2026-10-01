@@ -336,7 +336,7 @@ function BlogsPanel({ flash }: { flash: (m: string, e?: boolean) => void }) {
       setPosts(Array.isArray(b.data) ? b.data : []);
     } catch { flash('Could not load posts', true); } finally { setLoading(false); }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function openNew() { setEditId(null); setForm(EMPTY_BLOG); setView('form'); }
   async function openEdit(id: string) {
@@ -475,7 +475,7 @@ function EmployeesPanel({ flash }: { flash: (m: string, e?: boolean) => void }) 
       setList(Array.isArray(b.data) ? b.data : []);
     } catch { flash('Could not load employees', true); } finally { setLoading(false); }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function openNew() { setEditId(null); setName(''); setEmail(''); setPassword(''); setPerms([]); setView('form'); }
   function openEdit(e: Emp) { setEditId(e.id); setName(e.name || ''); setEmail(e.email); setPassword(''); setPerms(e.permissions || []); setView('form'); }
@@ -611,7 +611,7 @@ function LeadsPanel({ flash }: { flash: (m: string, e?: boolean) => void }) {
       setLeads(Array.isArray(b.data) ? b.data : []);
     } catch { flash('Could not load leads', true); } finally { setLoading(false); }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const counts = {
     all: leads.length,
@@ -794,7 +794,7 @@ function AccountsPanel({ flash, isOwner, onPendingChange }: {
       setRows(Array.isArray(b.data) ? b.data : []);
     } catch { flash('Could not load accounts', true); } finally { setLoading(false); }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isPending = (a: Account) => statusOf(a) === 'pending';
   const counts = {

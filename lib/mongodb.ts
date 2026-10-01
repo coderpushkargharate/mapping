@@ -8,14 +8,14 @@ import { MongoClient, Db } from 'mongodb';
 // MONGODB_DNS_SERVERS, comma-separated).
 const isLoopback = (s: string) => s === '::1' || s.startsWith('127.');
 // The driver resolves SRV via dns.promises, which can hold its own resolver.
-const useDnsServers = (servers: string[]) => {
+const applyDnsServers = (servers: string[]) => {
   dns.setServers(servers);
   dns.promises.setServers(servers);
 };
 if (process.env.MONGODB_DNS_SERVERS) {
-  useDnsServers(process.env.MONGODB_DNS_SERVERS.split(',').map((s) => s.trim()));
+  applyDnsServers(process.env.MONGODB_DNS_SERVERS.split(',').map((s) => s.trim()));
 } else if (dns.getServers().every(isLoopback) || dns.promises.getServers().every(isLoopback)) {
-  useDnsServers(['8.8.8.8', '1.1.1.1']);
+  applyDnsServers(['8.8.8.8', '1.1.1.1']);
 }
 
 // Reusable, cached MongoDB connection for Next.js.
