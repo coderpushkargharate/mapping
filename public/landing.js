@@ -468,14 +468,70 @@
   } catch (e) {}
 
   /* ---------- Globe ---------- */
+  // Builds the on-globe UI: zoom in/out buttons and a readable legend showing
+  // which country has how many live projects (and the top areas within it).
+  function buildGlobeOverlay(box, data) {
+    if (!box) return;
+    if (!document.getElementById('mpg-globe-css')) {
+      const st = document.createElement('style');
+      st.id = 'mpg-globe-css';
+      st.textContent =
+        '.globe-zoom{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:3}' +
+        '.globe-zoom button{width:34px;height:34px;border:0;border-radius:10px;font-size:20px;font-weight:700;line-height:1;cursor:pointer;' +
+        'background:rgba(255,255,255,.85);color:#0f5c47;box-shadow:0 2px 8px rgba(0,0,0,.18);backdrop-filter:blur(6px)}' +
+        '.globe-zoom button:hover{background:#fff}' +
+        '.globe-legend{display:flex;flex-direction:column;gap:4px;text-align:left}' +
+        '.globe-legend .gl-row{display:flex;align-items:center;gap:7px;font-size:13px}' +
+        '.globe-legend .gl-row b{font-weight:700}' +
+        '.globe-legend .gl-n{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}' +
+        '.globe-legend .gl-where{font-size:11px;opacity:.75;margin-top:1px}';
+      document.head.appendChild(st);
+    }
+
+    // Zoom buttons (wired to the 3D camera below, if three.js is present).
+    box.querySelectorAll('.globe-zoom').forEach(n => n.remove());
+    const zc = document.createElement('div');
+    zc.className = 'globe-zoom';
+    zc.innerHTML = '<button type="button" data-z="in" aria-label="Zoom in">+</button>' +
+      '<button type="button" data-z="out" aria-label="Zoom out">−</button>';
+    box.appendChild(zc);
+
+    // Counts legend — replaces the static "India · Dubai soon" pill.
+    const bottom = box.querySelector('.globe-bottom');
+    if (bottom && data && Array.isArray(data.countries) && data.countries.length) {
+      const rows = data.countries.slice(0, 3).map(c => {
+        const where = (c.areas || []).slice(0, 4).map(a => a.name).join(' · ');
+        return '<div class="gl-row"><span>' + c.flag + '</span><b>' + c.name + '</b>' +
+          '<span class="gl-n">' + c.count + '</span></div>' +
+          (where ? '<div class="gl-where">' + where + '</div>' : '');
+      }).join('');
+      bottom.innerHTML = '<span class="glass"><span class="globe-legend">' +
+        '<div class="gl-row" style="opacity:.8"><b>' + data.total + ' live projects</b></div>' +
+        rows + '</span></span>';
+    }
+  }
+
   (function () {
-    if (!window.THREE) return;
     const canvas = document.getElementById('globe-canvas');
     if (!canvas) return;
     const box = canvas.parentElement;
+
+    // Real project counts injected by the server (app/page.tsx → #mpg-globe-data).
+    // Shown as a readable legend + used to place markers. Falls back to a
+    // decorative set of cities when there is no data.
+    let GLOBE = null;
+    try {
+      const el = document.getElementById('mpg-globe-data');
+      if (el) GLOBE = JSON.parse(el.textContent || 'null');
+    } catch (e) { /* ignore malformed data */ }
+    buildGlobeOverlay(box, GLOBE);
+
+    if (!window.THREE) return; // counts still show above; only the 3D globe needs three.js
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(40, box.clientWidth / box.clientHeight, 0.1, 1000);
-    camera.position.set(0, 0, 3.2);
+    const ZMIN = 1.5, ZMAX = 6;
+    let zTarget = 3.2;
+    camera.position.set(0, 0, zTarget);
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     const size = () => {
       camera.aspect = box.clientWidth / box.clientHeight; camera.updateProjectionMatrix();
@@ -505,13 +561,21 @@
       const p = (90 - lat) * Math.PI / 180, t = (lon + 180) * Math.PI / 180;
       return new THREE.Vector3(-(r * Math.sin(p) * Math.cos(t)), r * Math.cos(p), r * Math.sin(p) * Math.sin(t));
     };
-    const places = [
-      { lat: 18.5204, lon: 73.8567, f: true },
-      { lat: 19.076, lon: 72.8777, f: true },
-      { lat: 25.2048, lon: 55.2708, f: true },
-      { lat: 28.6139, lon: 77.209 }, { lat: 12.9716, lon: 77.5946 },
-      { lat: 13.0827, lon: 80.2707 }, { lat: 17.385, lon: 78.4867 }, { lat: 22.5726, lon: 88.3639 }
-    ];
+    // Marker per country, sized bigger for the country with the most projects.
+    // Falls back to a decorative spread of Indian metros + Dubai when no data.
+    let places;
+    if (GLOBE && Array.isArray(GLOBE.countries) && GLOBE.countries.length) {
+      const max = Math.max.apply(null, GLOBE.countries.map(c => c.count));
+      places = GLOBE.countries.map(c => ({ lat: c.lat, lon: c.lon, f: c.count >= max }));
+    } else {
+      places = [
+        { lat: 18.5204, lon: 73.8567, f: true },
+        { lat: 19.076, lon: 72.8777, f: true },
+        { lat: 25.2048, lon: 55.2708, f: true },
+        { lat: 28.6139, lon: 77.209 }, { lat: 12.9716, lon: 77.5946 },
+        { lat: 13.0827, lon: 80.2707 }, { lat: 17.385, lon: 78.4867 }, { lat: 22.5726, lon: 88.3639 }
+      ];
+    }
     const rings = [];
     places.forEach(c => {
       const pos = v3(c.lat, c.lon, 1.008), col = c.f ? 0xd0613b : 0x0f5c47;
@@ -521,11 +585,14 @@
         new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: .6, side: THREE.DoubleSide }));
       ring.position.copy(pos); ring.lookAt(0, 0, 0); group.add(ring); rings.push(ring);
     });
-    const a = v3(18.52, 73.86, 1.01), b = v3(25.2, 55.27, 1.01);
-    const mid = a.clone().add(b).multiplyScalar(.5).normalize().multiplyScalar(1.28);
-    const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
-    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(60)),
-      new THREE.LineBasicMaterial({ color: 0x0f5c47, transparent: true, opacity: .9 })));
+    // Arc between the two biggest locations (decorative "reach" line).
+    if (places.length >= 2) {
+      const a = v3(places[0].lat, places[0].lon, 1.01), b = v3(places[1].lat, places[1].lon, 1.01);
+      const mid = a.clone().add(b).multiplyScalar(.5).normalize().multiplyScalar(1.28);
+      const curve = new THREE.QuadraticBezierCurve3(a, mid, b);
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(60)),
+        new THREE.LineBasicMaterial({ color: 0x0f5c47, transparent: true, opacity: .9 })));
+    }
 
     let ty = (70 + 180) * Math.PI / 180, tx = .3, cy = ty, cx = tx;
     let drag = false, prev = { x: 0, y: 0 }, vel = { x: 0, y: 0 }, auto = true, idle;
@@ -538,6 +605,26 @@
     canvas.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
     on(window, 'touchmove', e => move(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
     on(window, 'touchend', end);
+
+    /* ---------- Zoom (wheel + on-screen buttons), like a real map ---------- */
+    const clampZ = z => Math.max(ZMIN, Math.min(ZMAX, z));
+    const zoomBy = d => { zTarget = clampZ(zTarget + d); auto = false; clearTimeout(idle); idle = setTimeout(() => auto = true, 2500); };
+    canvas.addEventListener('wheel', e => { e.preventDefault(); zoomBy(e.deltaY > 0 ? 0.3 : -0.3); }, { passive: false });
+    // Pinch-to-zoom on touch devices.
+    let pinch = 0;
+    canvas.addEventListener('touchmove', e => {
+      if (e.touches.length !== 2) return;
+      const dx = e.touches[0].clientX - e.touches[1].clientX, dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      if (pinch) zoomBy((pinch - dist) * 0.01);
+      pinch = dist;
+    }, { passive: true });
+    canvas.addEventListener('touchend', () => { pinch = 0; }, { passive: true });
+    const zc = box.querySelector('.globe-zoom');
+    if (zc) {
+      zc.querySelector('[data-z="in"]').addEventListener('click', () => zoomBy(-0.6));
+      zc.querySelector('[data-z="out"]').addEventListener('click', () => zoomBy(0.6));
+    }
 
     // The loop stops when this run is torn down (next navigation) or when the
     // canvas is detached from the DOM — otherwise old loops would pile up and
@@ -553,6 +640,7 @@
       group.rotation.set(cx, cy, 0); clouds.rotation.y += .0004;
       const t = Date.now() * .001;
       rings.forEach((r, i) => { const s = 1 + Math.sin(t * 2 + i * .9) * .28; r.scale.set(s, s, s); r.material.opacity = .6 * (2 - s); });
+      camera.position.z += (zTarget - camera.position.z) * 0.1; // smooth zoom toward target
       renderer.render(scene, camera);
     })();
     on(window, 'resize', size);

@@ -4,6 +4,7 @@ import { LANDING_BODY } from '@/components/landing/body';
 import LandingClient from '@/components/landing/LandingClient';
 import SiteHeader from '@/components/SiteHeader';
 import IconFont from '@/components/IconFont';
+import { getGlobeData } from '@/lib/globe-data';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
 
@@ -31,7 +32,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  const globe = await getGlobeData();
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -64,6 +67,13 @@ export default function HomePage() {
       {/* Icon font, loaded without blocking the first paint (shared with every page). */}
       <IconFont />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+
+      {/* Real per-country project counts for the hero globe (read by landing.js). */}
+      <script
+        id="mpg-globe-data"
+        type="application/json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(globe) }}
+      />
 
       {/* One shared header across the whole site. */}
       <SiteHeader />
