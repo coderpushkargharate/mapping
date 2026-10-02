@@ -1,22 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GridFSBucket } from 'mongodb';
-import { getDb } from '@/lib/mongodb';
+import { query } from '@/lib/pg';
 import { getStaffUser } from '@/lib/auth';
 import { tokenIsValid } from '@/lib/partners-engine';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const BUCKET = 'partners_media';
+// Partner media (submission + project images, brochures, RERA QR). Stored as
+// rows in the `partners_media` table (bytea), keyed by "<bucket>/<path>". This
+// used to be a MongoDB GridFS bucket.
 const BUCKETS = new Set(['submission-media', 'project-media']);
 const MAX_BYTES = 25 * 1024 * 1024;
 
 function key(bucket: string, path: string) { return `${bucket}/${path}`; }
-
-async function bucket() {
-  const db = await getDb();
-  return { db, gfs: new GridFSBucket(db, { bucketName: BUCKET }) };
-}
 
 // ----------------------------------------------------------------- upload
 export async function POST(req: NextRequest) {
@@ -50,18 +46,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ data: null, error: { message: 'File is larger than 25 MB.' } }, { status: 413 });
   }
 
-  const { db, gfs } = await bucket();
   const filename = key(bucketName, path);
   // Overwrite semantics: drop any existing versions of this exact key first.
-  const existing = await db.collection(`${BUCKET}.files`).find({ filename }).toArray();
-  for (const f of existing) { try { await gfs.delete(f._id as any); } catch { /* ignore */ } }
-
-  await new Promise<void>((resolve, reject) => {
-    const up = gfs.openUploadStream(filename, { contentType, metadata: { bucket: bucketName, path } });
-    up.on('error', reject);
-    up.on('finish', () => resolve());
-    up.end(buf);
-  });
+  await query(`DELETE FROM "partners_media" WHERE filename = $1`, [filename]);
+  await query(
+    `INSERT INTO "partners_media" (filename, content_type, metadata, data)
+     VALUES ($1, $2, $3::jsonb, $4)`,
+    [filename, contentType, JSON.stringify({ bucket: bucketName, path }), buf],
+  );
 
   return NextResponse.json({ data: { path }, error: null });
 }
@@ -80,20 +72,16 @@ export async function GET(req: NextRequest) {
     if (!(await getStaffUser())) return NextResponse.json({ error: { message: 'Not authorized' } }, { status: 401 });
   }
 
-  const { db, gfs } = await bucket();
   const filename = key(bucketName, path);
-  const fileDoc = await db.collection(`${BUCKET}.files`).findOne({ filename }, { sort: { uploadDate: -1 } });
+  const res = await query<{ content_type: string; data: Buffer }>(
+    `SELECT content_type, data FROM "partners_media" WHERE filename = $1 ORDER BY upload_date DESC LIMIT 1`,
+    [filename],
+  );
+  const fileDoc = res.rows[0];
   if (!fileDoc) return NextResponse.json({ error: { message: 'Not found' } }, { status: 404 });
 
-  const chunks: Buffer[] = await new Promise((resolve, reject) => {
-    const parts: Buffer[] = [];
-    gfs.openDownloadStream(fileDoc._id as any)
-      .on('data', (c: Buffer) => parts.push(c))
-      .on('error', reject)
-      .on('end', () => resolve(parts));
-  });
-  const body = Buffer.concat(chunks);
-  const ct = (fileDoc as any).contentType || (fileDoc as any).metadata?.contentType || 'application/octet-stream';
+  const body = fileDoc.data;
+  const ct = fileDoc.content_type || 'application/octet-stream';
   return new NextResponse(new Uint8Array(body), {
     status: 200,
     headers: {

@@ -1,19 +1,20 @@
 import { gzipSync, gunzipSync } from 'node:zlib';
-import { GridFSBucket, ObjectId, type Db } from 'mongodb';
 import { getDb } from './mongodb';
+import { DOC_TABLES } from './mongo-compat';
+import { query } from './pg';
 
 // Whole-database backups for the super-admin "Backups" tab.
 //
-// - A snapshot is every collection's documents as one gzipped JSON file, kept
-//   in a GridFS bucket ("backups") inside the same database.
+// - A snapshot is every table's documents as one gzipped JSON blob, stored in
+//   the `backups` table (bytea column) in the same Postgres database. (This used
+//   to be a MongoDB GridFS bucket.)
 // - One is taken automatically per day (when an admin opens the tab — no cron
 //   needed) and on demand. The newest KEEP_SNAPSHOTS are kept.
 // - Password hashes are never written into a backup or a download.
 
 export const KEEP_SNAPSHOTS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const BUCKET = 'backups';
-type AnyDoc = { _id: unknown; [k: string]: unknown };
+type AnyDoc = { _id?: unknown; [k: string]: unknown };
 
 export interface SnapshotInfo {
   id: string;
@@ -24,28 +25,22 @@ export interface SnapshotInfo {
 }
 export type BackupData = Record<string, Record<string, unknown>[]>;
 
-/** Collections included in a backup: everything except the backup store itself. */
-async function backupCollections(db: Db): Promise<string[]> {
-  const all = await db.listCollections({}, { nameOnly: true }).toArray();
-  return all
-    .map((c) => c.name)
-    .filter((n) => !n.startsWith('system.') && !n.startsWith(`${BUCKET}.`))
-    .sort();
-}
+/** Tables included in a backup: every document table (not the blob tables). */
+const BACKUP_TABLES: string[] = [...DOC_TABLES].sort();
 
-function sanitize(collection: string, doc: AnyDoc): Record<string, unknown> {
-  const out: Record<string, unknown> = { ...doc };
-  if (collection === 'users') delete out.password_hash;
+function sanitize(table: string, doc: AnyDoc): Record<string, unknown> {
+  const { _id, ...out } = doc;
+  if (table === 'users') delete (out as Record<string, unknown>).password_hash;
   return out;
 }
 
-/** Every collection's documents, as plain JSON-safe objects. */
+/** Every table's documents, as plain JSON-safe objects. */
 export async function collectAll(): Promise<{ data: BackupData; counts: Record<string, number> }> {
   const db = await getDb();
   const data: BackupData = {};
   const counts: Record<string, number> = {};
-  for (const name of await backupCollections(db)) {
-    const rows = await db.collection<AnyDoc>(name).find({}).toArray();
+  for (const name of BACKUP_TABLES) {
+    const rows = (await db.collection(name).find({}).toArray()) as AnyDoc[];
     data[name] = rows.map((r) => sanitize(name, r));
     counts[name] = rows.length;
   }
@@ -55,51 +50,58 @@ export async function collectAll(): Promise<{ data: BackupData; counts: Record<s
 export async function liveCounts(): Promise<Record<string, number>> {
   const db = await getDb();
   const counts: Record<string, number> = {};
-  for (const name of await backupCollections(db)) counts[name] = await db.collection(name).countDocuments({});
+  for (const name of BACKUP_TABLES) counts[name] = await db.collection(name).countDocuments({});
   return counts;
 }
 
-function bucket(db: Db) {
-  return new GridFSBucket(db, { bucketName: BUCKET });
-}
+const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
-function toInfo(f: { _id: ObjectId; length: number; uploadDate: Date; metadata?: Record<string, unknown> }): SnapshotInfo {
-  const m = f.metadata || {};
+type BackupRow = {
+  id: string;
+  created_at: Date;
+  reason: string;
+  size: number;
+  counts: Record<string, number>;
+};
+
+function toInfo(r: BackupRow): SnapshotInfo {
   return {
-    id: String(f._id),
-    created_at: (m.created_at as string) || f.uploadDate.toISOString(),
-    reason: m.reason === 'auto' ? 'auto' : 'manual',
-    size: f.length,
-    counts: (m.counts as Record<string, number>) || {},
+    id: String(r.id),
+    created_at: new Date(r.created_at).toISOString(),
+    reason: r.reason === 'auto' ? 'auto' : 'manual',
+    size: Number(r.size) || 0,
+    counts: r.counts || {},
   };
 }
 
 export async function listSnapshots(): Promise<SnapshotInfo[]> {
-  const db = await getDb();
-  const files = await db.collection(`${BUCKET}.files`).find({}).sort({ uploadDate: -1 }).toArray();
-  return files.map((f) => toInfo(f as never));
+  const res = await query<BackupRow>(
+    `SELECT id, created_at, reason, size, counts FROM "backups" ORDER BY created_at DESC`,
+  );
+  return res.rows.map(toInfo);
 }
 
 export async function createSnapshot(reason: 'auto' | 'manual'): Promise<SnapshotInfo> {
-  const db = await getDb();
   const { data, counts } = await collectAll();
   const created_at = new Date().toISOString();
   const gz = gzipSync(Buffer.from(JSON.stringify({ created_at, reason, data })));
   const filename = `mappingg-backup-${created_at.replace(/[:.]/g, '-')}.json.gz`;
 
-  const b = bucket(db);
-  const id: ObjectId = await new Promise((resolve, reject) => {
-    const up = b.openUploadStream(filename, { metadata: { created_at, reason, counts } });
-    up.once('finish', () => resolve(up.id as ObjectId));
-    up.once('error', reject);
-    up.end(gz);
-  });
+  const res = await query<{ id: string }>(
+    `INSERT INTO "backups" (filename, created_at, reason, size, counts, gz)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6) RETURNING id`,
+    [filename, created_at, reason, gz.length, JSON.stringify(counts), gz],
+  );
 
   // Retention: keep only the newest KEEP_SNAPSHOTS.
-  const old = await db.collection(`${BUCKET}.files`).find({}).sort({ uploadDate: -1 }).skip(KEEP_SNAPSHOTS).toArray();
-  for (const f of old) await b.delete(f._id as ObjectId).catch(() => {});
+  await query(
+    `DELETE FROM "backups" WHERE id NOT IN (
+       SELECT id FROM "backups" ORDER BY created_at DESC LIMIT $1
+     )`,
+    [KEEP_SNAPSHOTS],
+  );
 
-  return { id: String(id), created_at, reason, size: gz.length, counts };
+  return { id: String(res.rows[0]?.id), created_at, reason, size: gz.length, counts };
 }
 
 /** Takes the daily automatic backup if the newest one is more than a day old. */
@@ -110,18 +112,14 @@ export async function ensureDailySnapshot(): Promise<SnapshotInfo | null> {
 }
 
 export async function readSnapshotGz(id: string): Promise<{ gz: Buffer; info: SnapshotInfo } | null> {
-  if (!ObjectId.isValid(id)) return null;
-  const db = await getDb();
-  const f = await db.collection(`${BUCKET}.files`).findOne({ _id: new ObjectId(id) });
-  if (!f) return null;
-  const chunks: Buffer[] = [];
-  await new Promise<void>((resolve, reject) => {
-    bucket(db).openDownloadStream(new ObjectId(id))
-      .on('data', (c: Buffer) => chunks.push(c))
-      .once('end', () => resolve())
-      .once('error', reject);
-  });
-  return { gz: Buffer.concat(chunks), info: toInfo(f as never) };
+  if (!isUuid(id)) return null;
+  const res = await query<BackupRow & { gz: Buffer }>(
+    `SELECT id, created_at, reason, size, counts, gz FROM "backups" WHERE id = $1`,
+    [id],
+  );
+  const row = res.rows[0];
+  if (!row) return null;
+  return { gz: row.gz, info: toInfo(row) };
 }
 
 export async function readSnapshot(id: string): Promise<{ data: BackupData; info: SnapshotInfo } | null> {

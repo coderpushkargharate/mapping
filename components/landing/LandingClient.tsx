@@ -2,17 +2,21 @@
 
 import { useEffect } from 'react';
 
-// Boots the landing page behaviour. Loads three.js (for the hero globe) first,
-// then /landing.js which wires up the nav, reveal-on-scroll, interactive sample
-// map, live-map trial and the auth modal. Both are injected once; the landing
-// script is a self-contained IIFE so a re-run never clashes with globals.
+// Boots the landing page behaviour. Loads three.js (for the hero globe) once,
+// then runs /landing.js which wires up the nav, reveal-on-scroll, interactive
+// sample map, live-map trial and the auth modal.
+//
+// Crucially, landing.js is RE-RUN on every mount. The landing markup is
+// server-rendered HTML that React rebuilds on each client-side navigation back
+// to "/", so its event handlers and reveal-on-scroll observers must be re-wired
+// against the fresh DOM — otherwise the sections below the hero stay hidden and
+// interactions go dead. The script tears down its previous run (window listeners
+// + globe animation loop) at the top, so re-running never leaks or double-binds.
 export default function LandingClient() {
   useEffect(() => {
-    function loadScript(src: string, marker: string): Promise<void> {
+    // Load an external script once; wait for an in-flight tag if present.
+    function loadOnce(src: string, marker: string): Promise<void> {
       return new Promise((resolve) => {
-        // A tag may already exist from an earlier run of this effect (React Strict
-        // Mode runs it twice) that is still downloading — wait for it rather than
-        // resolving early, or landing.js would start before three.js is ready.
         const existing = document.querySelector<HTMLScriptElement>(`script[${marker}]`);
         if (existing) {
           if (existing.dataset.done) return resolve();
@@ -30,20 +34,37 @@ export default function LandingClient() {
       });
     }
 
+    // Append a fresh <script> for landing.js so the browser re-executes it
+    // (inserting a new script element always re-runs it, even from cache).
+    function runLanding(): Promise<void> {
+      return new Promise((resolve) => {
+        document.querySelectorAll('script[data-mpg-landing]').forEach((s) => s.remove());
+        const el = document.createElement('script');
+        el.src = '/landing.js';
+        el.setAttribute('data-mpg-landing', '');
+        el.onload = () => resolve();
+        el.onerror = () => resolve();
+        document.body.appendChild(el);
+      });
+    }
+
     let cancelled = false;
     (async () => {
-      // three.js powers only the decorative hero globe; awaited so it exists first,
-      // but a failure never blocks the rest of the page.
-      await loadScript(
+      // three.js powers only the decorative hero globe; awaited so it exists
+      // first, but a failure never blocks the rest of the page.
+      await loadOnce(
         'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
         'data-mpg-three',
       );
       if (cancelled) return;
-      await loadScript('/landing.js', 'data-mpg-landing');
+      await runLanding();
     })();
 
     return () => {
       cancelled = true;
+      // Stop the globe animation + release listeners when leaving the page.
+      const w = window as unknown as { __mpgCleanup?: () => void };
+      if (typeof w.__mpgCleanup === 'function') w.__mpgCleanup();
     };
   }, []);
 

@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { Db } from 'mongodb';
-import { getDb } from './mongodb';
+import { getDb, type Db } from './mongodb';
 
 // Blog / articles backend. Posts live in the `posts` collection and power both
 // the public, SEO-friendly /blog pages and the super-admin blog manager.

@@ -4,6 +4,23 @@
  * real (MongoDB + JWT via /api/auth/*): buyers land on /map, developers/agents on /dashboard. */
 (function () {
   'use strict';
+
+  // This script re-runs on every client-side navigation back to the landing
+  // page (see LandingClient.tsx). The DOM is rebuilt each time, so we first tear
+  // down the previous run's window/document listeners and the globe animation
+  // loop, then re-wire everything against the fresh DOM. `on()` registers a
+  // listener and its removal; `__cleanups` is drained by `__mpgCleanup`.
+  if (window.__mpgCleanup) { try { window.__mpgCleanup(); } catch (e) { /* ignore */ } }
+  const __cleanups = [];
+  const on = (target, evt, handler, opts) => {
+    target.addEventListener(evt, handler, opts);
+    __cleanups.push(() => target.removeEventListener(evt, handler, opts));
+  };
+  window.__mpgCleanup = () => {
+    __cleanups.forEach(fn => { try { fn(); } catch (e) { /* ignore */ } });
+    window.__mpgCleanup = null;
+  };
+
   const byId = id => document.getElementById(id);
   function toast(msg, icon) {
     const t = byId('toast'); if (!t) return;
@@ -27,7 +44,7 @@
     let cur = 'home'; spy.forEach(s => { if (s && scrollY >= s.offsetTop - 220) cur = s.id; });
     links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + cur));
   };
-  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  on(window, 'scroll', onScroll, { passive: true }); onScroll();
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); } }), { threshold: .12, rootMargin: '0px 0px -40px 0px' });
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
@@ -60,14 +77,14 @@
     if (taps >= FREE_TAPS) setTimeout(() => openModal('signup', null, 'No charge for buyers — takes under a minute.'), 450);
     else toast(`${FREE_TAPS - taps} search${FREE_TAPS - taps === 1 ? '' : 'es'} left on the live map`, 'fa-hand-pointer');
   }
-  window.addEventListener('blur', () => {
+  on(window, 'blur', () => {
     setTimeout(() => {
       if (document.activeElement !== liveFrame) return;
       countTap();
       if (liveFrame) liveFrame.blur(); window.focus();
     }, 0);
   });
-  window.addEventListener('message', e => {
+  on(window, 'message', e => {
     if (!/^https:\/\/(www\.)?mappingg\.com$/.test(e.origin)) return;
     if (e.data && e.data.type === 'mappingg:pin-click') countTap();
   });
@@ -439,8 +456,8 @@
 
   // The shared <SiteHeader/> lives outside this markup; it asks us to open the
   // auth modal via a window event instead of a class handler.
-  window.addEventListener('mpg:open-signin', function () { openModal('signin'); });
-  window.addEventListener('mpg:open-signup', function (e) { openModal('signup', e && e.detail && e.detail.role); });
+  on(window, 'mpg:open-signin', function () { openModal('signin'); });
+  on(window, 'mpg:open-signup', function (e) { openModal('signup', e && e.detail && e.detail.role); });
 
   // Deep-links: /?admin=1 (redirected from the gated admin) or /?signin=1 (Sign in
   // from another page's header) open the sign-in modal on load.
@@ -516,13 +533,19 @@
     const move = (x, y) => { if (!drag) return; vel.y = (x - prev.x) * .005; vel.x = (y - prev.y) * .005; prev = { x, y }; };
     const end = () => { if (!drag) return; drag = false; idle = setTimeout(() => auto = true, 2000); };
     canvas.addEventListener('mousedown', e => start(e.clientX, e.clientY));
-    window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
-    window.addEventListener('mouseup', end);
+    on(window, 'mousemove', e => move(e.clientX, e.clientY));
+    on(window, 'mouseup', end);
     canvas.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-    window.addEventListener('touchmove', e => move(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
-    window.addEventListener('touchend', end);
+    on(window, 'touchmove', e => move(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+    on(window, 'touchend', end);
 
+    // The loop stops when this run is torn down (next navigation) or when the
+    // canvas is detached from the DOM — otherwise old loops would pile up and
+    // keep rendering to orphaned canvases, degrading performance.
+    let __globeStop = false;
+    __cleanups.push(() => { __globeStop = true; });
     (function loop() {
+      if (__globeStop || !canvas.isConnected) return;
       requestAnimationFrame(loop);
       if (drag) { cy += vel.y; cx = Math.max(-1.2, Math.min(1.2, cx + vel.x)); vel.x *= .93; vel.y *= .93; ty = cy; tx = cx; }
       else if (auto) { cy += .0011; cx += (tx - cx) * .02; }
@@ -532,6 +555,6 @@
       rings.forEach((r, i) => { const s = 1 + Math.sin(t * 2 + i * .9) * .28; r.scale.set(s, s, s); r.material.opacity = .6 * (2 - s); });
       renderer.render(scene, camera);
     })();
-    window.addEventListener('resize', size);
+    on(window, 'resize', size);
   })();
 })();

@@ -1,6 +1,5 @@
 import { randomUUID } from 'crypto';
-import type { Db } from 'mongodb';
-import { getDb } from './mongodb';
+import { getDb, type Db } from './mongodb';
 
 // Our documents use string uuid _id values (not ObjectId), so we type
 // collections loosely to keep the driver's strict _id typing out of the way.

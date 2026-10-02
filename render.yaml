@@ -12,12 +12,12 @@ services:
     envVars:
       # Secrets — set the real values in the Render dashboard (Environment tab).
       # They are NOT committed to git, so they must be added there.
-      - key: MONGODB_URI
+      # DATABASE_URL is the Postgres (Prisma Postgres) connection the app uses.
+      - key: DATABASE_URL
         sync: false
       - key: AUTH_SECRET
         sync: false
-      - key: MONGODB_DB
-        value: mappingg
+      # MONGODB_* are no longer used by the running app (migration only).
       - key: NEXT_PUBLIC_SITE_URL
         value: https://mapping-8vm5.onrender.com
       - key: NEXT_PUBLIC_GOOGLE_MAPS_KEY

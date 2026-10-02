@@ -2,6 +2,8 @@ import { randomUUID } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { getDb } from './mongodb';
 import { getCurrentUser } from './auth';
+// NOTE: `Db` type no longer imported from the mongodb driver; the collection
+// shim is structurally typed, so the untyped getDb() return is fine here.
 
 // Our docs use string uuid _id values, so type the collection loosely to keep
 // the driver's strict ObjectId _id typing out of the way (mirrors db-engine).

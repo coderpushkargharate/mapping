@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/mongodb';
+import { query } from '@/lib/pg';
 import { hasPermission } from '@/lib/staff';
 import { countPosts } from '@/lib/blog';
 import { getPublicSettings } from '@/lib/site-settings';
@@ -30,15 +31,19 @@ export async function GET() {
   }
   const db = await getDb();
 
-  // Pins without the heavy base64 images — just whether they have one.
-  const pins = (await db.collection('pins').aggregate([
-    { $project: {
-      title: 1, description: 1, developer: 1, location: 1, price: 1, status: 1, type: 1, key_usp: 1,
-      rera_number: 1, custom_fields: 1, possession_timeline: 1, launch_date: 1, created_at: 1, hidden: 1,
-      hasImage: { $gt: [{ $strLenCP: { $ifNull: ['$image', ''] } }, 0] },
-      hasBrochure: { $gt: [{ $strLenCP: { $ifNull: ['$brochure_image', ''] } }, 0] },
-    } },
-  ]).toArray()) as Pin[];
+  // Pins without the heavy base64 images — just whether they have one. Computed
+  // in SQL so the image bytes never leave the database.
+  const pins = (await query<{ d: Pin }>(
+    `SELECT jsonb_build_object(
+       'title', doc->'title', 'description', doc->'description', 'developer', doc->'developer',
+       'location', doc->'location', 'price', doc->'price', 'status', doc->'status',
+       'type', doc->'type', 'key_usp', doc->'key_usp', 'rera_number', doc->'rera_number',
+       'custom_fields', doc->'custom_fields', 'possession_timeline', doc->'possession_timeline',
+       'launch_date', doc->'launch_date', 'created_at', doc->'created_at', 'hidden', doc->'hidden',
+       'hasImage', (coalesce(length(doc->>'image'), 0) > 0),
+       'hasBrochure', (coalesce(length(doc->>'brochure_image'), 0) > 0)
+     ) AS d FROM "pins"`,
+  )).rows.map((r) => r.d);
   const pub = pins.filter((p) => p.hidden !== true);
 
   // Project-page completeness: share of public projects that have each detail.

@@ -1,6 +1,5 @@
 import { randomUUID, randomBytes } from 'crypto';
-import type { Db } from 'mongodb';
-import { getDb } from './mongodb';
+import { getDb, type Db } from './mongodb';
 
 // =============================================================================
 // Partners intake engine (MongoDB)
