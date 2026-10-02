@@ -164,6 +164,7 @@ function DashboardPanel({ onGo }: { onGo: (t: string) => void }) {
             <button onClick={() => onGo('map')}><i className="fas fa-map-location-dot" /><span><b>Map editor</b><small>Add & edit project pins</small></span></button>
             <button onClick={() => onGo('leads')}><i className="fas fa-address-book" /><span><b>Leads</b><small>Reply to enquiries</small></span></button>
             <button onClick={() => onGo('blogs')}><i className="fas fa-newspaper" /><span><b>Blogs</b><small>Write SEO articles</small></span></button>
+            <a href="/s-admin/submissions"><i className="fas fa-location-dot" /><span><b>Developer submissions</b><small>Review & publish to the map</small></span></a>
             <a href="/map" target="_blank" rel="noopener"><i className="fas fa-arrow-up-right-from-square" /><span><b>Live site</b><small>See what visitors see</small></span></a>
           </div>
         </div>

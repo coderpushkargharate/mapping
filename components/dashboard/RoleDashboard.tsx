@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { statusLabel, type SeoProject } from '@/lib/seo-data';
 import SignOutButton from './SignOutButton';
+import DeveloperProjects from './DeveloperProjects';
 
 export interface DashboardAccount {
   name: string;
@@ -22,11 +23,6 @@ const norm = (s?: string) => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ')
 const splitAreas = (s?: string) => (s || '').split(/[,/;]+/).map(norm).filter(Boolean);
 const inAreas = (p: SeoProject, areas: string[]) => areas.some((a) => norm(p.location).includes(a));
 const initials = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
-
-// Developer's own projects: pins whose developer name matches the company,
-// ignoring suffixes like "Pvt Ltd" / "Developers" that vary between listings.
-const companyKey = (s?: string) =>
-  norm(s).replace(/\b(pvt|private|ltd|limited|llp|developers?|builders?|realty|group|infra|the)\b/g, ' ').replace(/\s+/g, ' ').trim();
 
 function ProjectList({ items, empty }: { items: SeoProject[]; empty: string }) {
   if (!items.length) return <p className="dsh-empty">{empty}</p>;
@@ -102,23 +98,14 @@ export default function RoleDashboard({ account, projects }: { account: Dashboar
       { href: '/contact', label: 'Talk to our team', icon: 'fa-comments' },
     ];
   } else if (account.role === 'developer') {
-    const key = companyKey(p.company);
-    const mine = key ? projects.filter((x) => { const d = companyKey(x.developer); return !!d && (d.includes(key) || key.includes(d)); }) : [];
+    // Developers add and see only their own projects (owner-scoped, server-enforced).
     stats = [
-      { label: 'Your projects on the map', value: mine.length, icon: 'fa-location-dot' },
-      { label: 'Under construction', value: mine.filter((x) => x.status === 'under_construction').length, icon: 'fa-helmet-safety' },
-      { label: 'Sold out', value: mine.filter((x) => x.status === 'sold').length, icon: 'fa-circle-check' },
       { label: 'Active projects (declared)', value: p.activeProjects || '—', icon: 'fa-building' },
+      { label: 'Live projects on Mappingg', value: live.length, icon: 'fa-map-location-dot' },
+      { label: 'MahaRERA project no.', value: p.reraProject || '—', icon: 'fa-shield-halved' },
+      { label: 'Account status', value: account.verified ? 'Approved' : 'Pending', icon: 'fa-user-check' },
     ];
-    main = (
-      <section className="dsh-card">
-        <h2><i className="fas fa-location-dot" /> Your projects on Mappingg</h2>
-        <ProjectList
-          items={mine}
-          empty="None of your projects are on the map yet. Contact our team to list your first project — we'll send you a secure submission link."
-        />
-      </section>
-    );
+    main = <DeveloperProjects />;
     details = (
       <>
         <Field label="Company" value={p.company} />
@@ -128,9 +115,9 @@ export default function RoleDashboard({ account, projects }: { account: Dashboar
       </>
     );
     actions = [
-      { href: '/contact', label: 'List a new project', icon: 'fa-plus' },
       { href: '/advertise', label: 'Promote your projects', icon: 'fa-bullhorn' },
       { href: '/map', label: 'Open the live map', icon: 'fa-map-location-dot' },
+      { href: '/contact', label: 'Talk to our team', icon: 'fa-comments' },
     ];
   } else {
     const areas = splitAreas(p.areas);

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import LegacyApp from '@/components/LegacyApp';
 import LegacyPreloads from '@/components/LegacyPreloads';
+import MapAuthGate from '@/components/MapAuthGate';
 import { getSeoProjects, statusLabel, AREAS_PUNE, AREAS_MMR } from '@/lib/seo-data';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://mappingg.com';
@@ -103,6 +104,9 @@ export default async function MapPage() {
 
       <LegacyPreloads slug="public-map" />
       <LegacyApp slug="public-map" />
+      {/* Guests get a short peek, then a sign-in prompt. Server HTML above stays
+          crawlable so the map page keeps its SEO. */}
+      <MapAuthGate />
     </>
   );
 }
